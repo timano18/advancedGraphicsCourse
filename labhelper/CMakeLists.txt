@@ -2,8 +2,10 @@ cmake_minimum_required ( VERSION 3.0.2 )
 
 project ( labhelper )
 
+set ( CMAKE_CXX_STANDARD 17 )
+
 # External libraries which need to be built.
-add_subdirectory ( ${CMAKE_SOURCE_DIR}/external_src/imgui-1.51 ${CMAKE_CURRENT_BINARY_DIR}/imgui )
+add_subdirectory ( ${CMAKE_SOURCE_DIR}/external_src/imgui ${CMAKE_CURRENT_BINARY_DIR}/imgui )
 set_target_properties(imgui PROPERTIES FOLDER external)
 
 if("${SDL2_LIBRARIES}" STREQUAL "")
@@ -26,8 +28,12 @@ add_library ( ${PROJECT_NAME}
 	fbo.cpp
 	hdr.h
 	hdr.cpp
-    imgui_impl_sdl_gl3.h
-    imgui_impl_sdl_gl3.cpp
+    imgui_impl_sdl.h
+    imgui_impl_sdl.cpp
+    imgui_impl_opengl3.cpp
+    imgui_impl_opengl3.h
+    perf.h
+    perf.cpp
     )
 
 if (MSVC)
@@ -56,3 +62,4 @@ target_link_libraries ( ${PROJECT_NAME}
     ${GLEW_LIBRARIES}
     ${OPENGL_LIBRARY}
     )
+

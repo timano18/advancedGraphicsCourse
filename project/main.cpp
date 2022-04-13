@@ -11,7 +11,8 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 
 #include <labhelper.h>
 #include <imgui.h>
-#include <imgui_impl_sdl_gl3.h>
+
+#include <perf.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
@@ -29,7 +30,6 @@ SDL_Window* g_window = nullptr;
 float currentTime = 0.0f;
 float previousTime = 0.0f;
 float deltaTime = 0.0f;
-bool showUI = false;
 int windowWidth, windowHeight;
 
 // Mouse input
@@ -210,6 +210,8 @@ void drawScene(GLuint currentShaderProgram,
 ///////////////////////////////////////////////////////////////////////////////
 void display(void)
 {
+	labhelper::perf::Scope s( "Display" );
+
 	///////////////////////////////////////////////////////////////////////////
 	// Check if window size has changed and resize buffers as needed
 	///////////////////////////////////////////////////////////////////////////
@@ -250,8 +252,14 @@ void display(void)
 	glClearColor(0.2f, 0.2f, 0.8f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	drawBackground(viewMatrix, projMatrix);
-	drawScene(shaderProgram, viewMatrix, projMatrix, lightViewMatrix, lightProjMatrix);
+	{
+		labhelper::perf::Scope s( "Background" );
+		drawBackground(viewMatrix, projMatrix);
+	}
+	{
+		labhelper::perf::Scope s( "Scene" );
+		drawScene( shaderProgram, viewMatrix, projMatrix, lightViewMatrix, lightProjMatrix );
+	}
 	debugDrawLight(viewMatrix, projMatrix, vec3(lightPosition));
 
 }
@@ -267,16 +275,25 @@ bool handleEvents(void)
 	bool quitEvent = false;
 	while(SDL_PollEvent(&event))
 	{
+		labhelper::processEvent( &event );
+
 		if(event.type == SDL_QUIT || (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_ESCAPE))
 		{
 			quitEvent = true;
 		}
 		if(event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_g)
 		{
-			showUI = !showUI;
+			if ( labhelper::isGUIvisible() )
+			{
+				labhelper::hideGUI();
+			}
+			else
+			{
+				labhelper::showGUI();
+			}
 		}
 		if(event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT
-		   && (!showUI || !ImGui::GetIO().WantCaptureMouse))
+		   && (!labhelper::isGUIvisible() || !ImGui::GetIO().WantCaptureMouse))
 		{
 			g_isMouseDragging = true;
 			int x;
@@ -347,6 +364,12 @@ void gui()
 	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
 	            ImGui::GetIO().Framerate);
 	// ----------------------------------------------------------
+
+
+	////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////
+
+	labhelper::perf::drawEventsWindow();
 }
 
 int main(int argc, char* argv[])
@@ -366,26 +389,23 @@ int main(int argc, char* argv[])
 		currentTime = timeSinceStart.count();
 		deltaTime = currentTime - previousTime;
 
+		// check events (keyboard among other)
+		stopRendering = handleEvents();
+
 		// Inform imgui of new frame
-		ImGui_ImplSdlGL3_NewFrame(g_window);
+		labhelper::newFrame( g_window );
 
 		// render to window
 		display();
 
 		// Render overlay GUI.
-		if(showUI)
-		{
-			gui();
-		}
+		gui();
 
-		// Render the GUI.
-		ImGui::Render();
+		// Finish the frame and render the GUI
+		labhelper::finishFrame();
 
 		// Swap front and back buffer. This frame will now been displayed.
 		SDL_GL_SwapWindow(g_window);
-
-		// check events (keyboard among other)
-		stopRendering = handleEvents();
 	}
 	// Free Models
 	labhelper::freeModel(fighterModel);

@@ -88,6 +88,28 @@ void non_fatal_error(std::string errorString, std::string title = std::string())
 SDL_Window* init_window_SDL(std::string caption, int width = 1280, int height = 720);
 
 /**
+	* Updates things for the new frame to begin
+	*/
+void newFrame( SDL_Window* window );
+
+/**
+	* Finishes a frame before rendering it
+	*/
+void finishFrame();
+
+/**
+	* Control GUI visibility
+	*/
+void showGUI();
+void hideGUI();
+bool isGUIvisible();
+
+/**
+	* To be called for processed SDL events to handle imgui stuff and similar
+	*/
+void processEvent( const SDL_Event* event );
+
+/**
 	* Destroys that which have been initialized.
 	*/
 void shutDown(SDL_Window* window);

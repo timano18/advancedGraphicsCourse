@@ -34,7 +34,8 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/glm.hpp>
 #include <imgui.h>
-#include "imgui_impl_sdl_gl3.h"
+#include "imgui_impl_sdl.h"
+#include "imgui_impl_opengl3.h"
 
 //#define HDR_FRAMEBUFFER
 
@@ -42,6 +43,10 @@ using std::vector;
 
 namespace labhelper
 {
+
+static bool s_show_gui = true;
+
+
 SDL_Window* init_window_SDL(std::string caption, int width, int height)
 {
 	// Initialize SDL
@@ -91,7 +96,11 @@ SDL_Window* init_window_SDL(std::string caption, int width, int height)
 	glewInit();
 
 	// Initialize ImGui; will allow us to edit variables in the application.
-	ImGui_ImplSdlGL3_Init(window);
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGui::StyleColorsDark();
+	ImGui_ImplSDL2_InitForOpenGL( window, maincontext );
+	ImGui_ImplOpenGL3_Init();
 
 	// Check OpenGL properties
 	labhelper::startupGLDiagnostics();
@@ -113,13 +122,59 @@ SDL_Window* init_window_SDL(std::string caption, int width, int height)
 	return window;
 }
 
+void newFrame( SDL_Window* window )
+{
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplSDL2_NewFrame( window );
+	ImGui::NewFrame();
+}
+
+void finishFrame()
+{
+	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+	if ( s_show_gui )
+	{
+		ImGui::Render();
+		glViewport( 0, 0, (int)ImGui::GetIO().DisplaySize.x, (int)ImGui::GetIO().DisplaySize.y );
+		ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData() );
+	}
+	else
+	{
+		ImGui::EndFrame();
+		ImGui::CaptureMouseFromApp( false );
+		ImGui::CaptureKeyboardFromApp( false );
+	}
+}
+
+void showGUI()
+{
+	s_show_gui = true;
+}
+
+void hideGUI()
+{
+	s_show_gui = false;
+}
+
+bool isGUIvisible()
+{
+	return s_show_gui;
+}
+
+void processEvent( const SDL_Event* event )
+{
+	ImGui_ImplSDL2_ProcessEvent( event );
+}
+
 void shutDown(SDL_Window* window)
 {
 	// If newframe is not ever run before shut down we crash
-	ImGui_ImplSdlGL3_NewFrame(window);
+	ImGui_ImplSDL2_NewFrame( window );
 
 	//Destroy imgui
-	ImGui_ImplSdlGL3_Shutdown();
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplSDL2_Shutdown();
+	ImGui::DestroyContext();
 
 	//Destroy window
 	SDL_DestroyWindow(window);
