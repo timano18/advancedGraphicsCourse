@@ -8,6 +8,7 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 #include <cstdlib>
 #include <algorithm>
 #include <chrono>
+#include <iostream>
 
 #include <labhelper.h>
 #include <imgui.h>
@@ -76,10 +77,12 @@ vec3 worldUp(0.0f, 1.0f, 0.0f);
 labhelper::Model* fighterModel = nullptr;
 labhelper::Model* landingpadModel = nullptr;
 labhelper::Model* sphereModel = nullptr;
+labhelper::Model* sponzaModel = nullptr;
 
 mat4 roomModelMatrix;
 mat4 landingPadModelMatrix;
 mat4 fighterModelMatrix;
+mat4 sponzaModelMatrix;
 
 void loadShaders(bool is_reload)
 {
@@ -106,6 +109,8 @@ void loadShaders(bool is_reload)
 ///////////////////////////////////////////////////////////////////////////////
 /// This function is called once at the start of the program and never again
 ///////////////////////////////////////////////////////////////////////////////
+
+
 void initialize()
 {
 	ENSURE_INITIALIZE_ONLY_ONCE();
@@ -122,10 +127,12 @@ void initialize()
 	landingpadModel = labhelper::loadModelFromOBJ("../scenes/landingpad.obj");
 	sphereModel = labhelper::loadModelFromOBJ("../scenes/sphere.obj");
 
+
+
 	roomModelMatrix = mat4(1.0f);
 	fighterModelMatrix = translate(15.0f * worldUp);
 	landingPadModelMatrix = mat4(1.0f);
-
+	sponzaModelMatrix = mat4(1.0f);
 	///////////////////////////////////////////////////////////////////////
 	// Load environment map
 	///////////////////////////////////////////////////////////////////////
@@ -201,6 +208,8 @@ void drawScene(GLuint currentShaderProgram,
 	                          inverse(transpose(viewMatrix * fighterModelMatrix)));
 
 	labhelper::render(fighterModel);
+
+
 }
 
 
@@ -258,7 +267,8 @@ void display(void)
 	}
 	{
 		labhelper::perf::Scope s( "Scene" );
-		drawScene( shaderProgram, viewMatrix, projMatrix, lightViewMatrix, lightProjMatrix );
+		//drawScene( shaderProgram, viewMatrix, projMatrix, lightViewMatrix, lightProjMatrix );
+
 	}
 	debugDrawLight(viewMatrix, projMatrix, vec3(lightPosition));
 
@@ -376,10 +386,69 @@ int main(int argc, char* argv[])
 {
 	g_window = labhelper::init_window_SDL("OpenGL Project");
 
+
 	initialize();
 
 	bool stopRendering = false;
 	auto startTime = std::chrono::system_clock::now();
+	
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+
+
+	// create vertices
+	int gridWidth = 1000; 
+	int gridHeight = 1000; 
+	float cellSize = 10.0f;
+	std::vector<float> vertices; 
+	for (int y = 0; y < gridHeight; ++y) {
+		for (int x = 0; x < gridWidth; ++x) {
+			// Bottom left corner
+			vertices.push_back(x * cellSize);
+			vertices.push_back(y * cellSize);
+			vertices.push_back(0.0f); // Z value
+
+			// Bottom right corner
+			vertices.push_back((x + 1) * cellSize);
+			vertices.push_back(y * cellSize);
+			vertices.push_back(0.0f); // Z value
+
+			// Top right corner
+			vertices.push_back((x + 1) * cellSize);
+			vertices.push_back((y + 1) * cellSize);
+			vertices.push_back(0.0f); // Z value
+
+			// Top left corner
+			vertices.push_back(x * cellSize);
+			vertices.push_back((y + 1) * cellSize);
+			vertices.push_back(0.0f); // Z value
+			// Repeat the first vertex to close the square
+			vertices.push_back(x * cellSize);
+			vertices.push_back(y * cellSize);
+			vertices.push_back(0.0f); // Z value
+
+			// And the diagonal to make two triangles for rendering
+			vertices.push_back((x + 1) * cellSize);
+			vertices.push_back((y + 1) * cellSize);
+			vertices.push_back(0.0f); // Z value
+		}
+	}
+	unsigned int VAO, VBO;
+	glGenVertexArrays(1, &VAO); 
+	glBindVertexArray(VAO); 
+	glGenBuffers(1, &VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+	mat4 gridMatrix = mat4(1.0f);
+
+
+
+
+
 
 	while(!stopRendering)
 	{
@@ -397,6 +466,19 @@ int main(int argc, char* argv[])
 
 		// render to window
 		display();
+
+
+		mat4 projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 5.0f, 2000.0f);
+		mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
+		labhelper::setUniformSlow(shaderProgram, "modelViewProjectionMatrix",
+			projMatrix * viewMatrix * landingPadModelMatrix);
+		labhelper::setUniformSlow(shaderProgram, "modelViewMatrix", viewMatrix * landingPadModelMatrix);
+		glBindVertexArray(VAO);
+
+		
+		
+		glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertices.size() / 3));
+
 
 		// Render overlay GUI.
 		gui();
