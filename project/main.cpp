@@ -24,6 +24,10 @@ using namespace glm;
 #include "fbo.h"
 
 
+
+
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // Various globals
 ///////////////////////////////////////////////////////////////////////////////
@@ -43,6 +47,7 @@ bool g_isMouseDragging = false;
 GLuint shaderProgram;       // Shader for rendering the final image
 GLuint simpleShaderProgram; // Shader used to draw the shadow map
 GLuint backgroundProgram;
+GLuint testShader;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Environment
@@ -67,7 +72,7 @@ float point_light_intensity_multiplier = 10000.0f;
 ///////////////////////////////////////////////////////////////////////////////
 vec3 cameraPosition(-70.0f, 50.0f, 70.0f);
 vec3 cameraDirection = normalize(vec3(0.0f) - cameraPosition);
-float cameraSpeed = 10.f;
+float cameraSpeed = 100.f;
 
 vec3 worldUp(0.0f, 1.0f, 0.0f);
 
@@ -102,6 +107,12 @@ void loadShaders(bool is_reload)
 	if(shader != 0)
 	{
 		shaderProgram = shader;
+	}
+	
+	shader = labhelper::loadShaderProgram("../project/testShader.vert", "../project/testShader.frag", is_reload);
+	if (shader != 0)
+	{
+		testShader = shader;
 	}
 }
 
@@ -140,7 +151,7 @@ void initialize()
 
 
 	glEnable(GL_DEPTH_TEST); // enable Z-buffering
-	glEnable(GL_CULL_FACE);  // enables backface culling
+	//glEnable(GL_CULL_FACE);  // enables backface culling
 }
 
 void debugDrawLight(const glm::mat4& viewMatrix,
@@ -382,23 +393,108 @@ void gui()
 	labhelper::perf::drawEventsWindow();
 }
 
+
+#include <vector>
+#include <algorithm>
+#include <cmath>
+
+// vec2 with floats
+typedef struct {
+	float x, y;
+} vec2float;
+
+// Generate randomness (paste)
+vec2float randomGradient(int ix, int iy)
+{
+	// No precomputed gradients mean this works for any number of grid coordinates
+	const unsigned w = 8 * sizeof(unsigned);
+	const unsigned s = w / 2;
+	unsigned a = ix, b = iy;
+	a *= 3284157443;
+
+	b ^= a << s | a >> w - s;
+	b *= 1911520717;
+
+	a ^= b << s | b >> w - s;
+	a *= 2048419325;
+	float random = a * (3.14159265 / ~(~0u >> 1)); // in [0, 2*Pi]
+
+	// Create the vector from the angle
+	vec2float v;
+	v.x = sin(random);
+	v.y = cos(random);
+
+	return v;
+}
+
+
+// Find dot product of vectors
+float dotGridGradient(int ix, int iy, float x, float y)
+{
+	// Create random grad. for a square index
+	vec2float gradient = randomGradient(ix, iy);
+
+	// Find distance
+	float dx = x - (float)ix;
+	float dy = y - (float)iy;
+
+	return (dx * gradient.x + dy * gradient.y);
+}
+
+// Interpolate two values with weight
+float interpolate(float a0, float a1, float weight)
+{
+	return (a1 - a0) * (3.0 - weight * 2.0) * weight * weight + a0;
+}
+
+// Input coords.
+float perlinNoice(float x, float y)
+{
+
+	// Find square corners
+	int x0 = (int)x;
+	int y0 = (int)y;
+	int x1 = x0 + 1;
+	int y1 = y0 + 1;
+
+	// Interpolation weight (from size of square)
+	float wx = x - (float)x0;
+	float wy = y - (float)y0;
+
+	// Generate + interpolate top corners
+	float n0 = dotGridGradient(x0, y0, x, y);
+	float n1 = dotGridGradient(x1, y0, x, y);
+	float ix0 = interpolate(n0, n1, wx);
+
+	// Generate + interpolate bot corners
+	n0 = dotGridGradient(x0, y1, x, y);
+	n1 = dotGridGradient(x1, y1, x, y);
+	float ix1 = interpolate(n0, n1, wx);
+
+	// Interpolate between top and bot
+	float value = interpolate(ix0, ix1, wy);
+
+	return value;
+}
+
+
 int main(int argc, char* argv[])
 {
 	g_window = labhelper::init_window_SDL("OpenGL Project");
 
-
+	
 	initialize();
 
 	bool stopRendering = false;
 	auto startTime = std::chrono::system_clock::now();
 	
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 
 
 	// create vertices
-	int gridWidth = 1000; 
-	int gridHeight = 1000; 
+	int gridWidth = 100; 
+	int gridHeight = 100; 
 	float cellSize = 10.0f;
 	std::vector<float> vertices; 
 	for (int y = 0; y < gridHeight; ++y) {
@@ -445,7 +541,56 @@ int main(int argc, char* argv[])
 	glBindVertexArray(0);
 	mat4 gridMatrix = mat4(1.0f);
 
+	gridMatrix = glm::rotate(gridMatrix, glm::radians(90.0f), glm::vec3(1, 0, 0));
+	gridMatrix = glm::translate(gridMatrix, glm::vec3(-gridWidth / 2.0f, -gridHeight / 2.0f, 0.0f));
 
+
+
+
+
+
+	
+
+
+
+
+
+	// Setup quad vertices and texture coordinates
+	float quadVertices[] = {
+		// positions        // texture Coords
+		-1.0f,  1.0f, 0.0f,  0.0f, 1.0f,
+		-1.0f, -1.0f, 0.0f,  0.0f, 0.0f,
+		 1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
+
+		-1.0f,  1.0f, 0.0f,  0.0f, 1.0f,
+		 1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
+		 1.0f,  1.0f, 0.0f,  1.0f, 1.0f
+	};
+
+
+
+	GLuint quadVAO, quadVBO;
+	glGenVertexArrays(1, &quadVAO);
+	glGenBuffers(1, &quadVBO);
+	glBindVertexArray(quadVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+
+	// position attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	// texture coord attribute
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	// Unbind the VAO for now
+	glBindVertexArray(0);
+
+	// Create noise texture
+
+		// Texture dimensions
+	const int WIDTH = 512;
+	const int HEIGHT = 512;
 
 
 
@@ -468,16 +613,27 @@ int main(int argc, char* argv[])
 		display();
 
 
+
 		mat4 projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 5.0f, 2000.0f);
 		mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
+		
 		labhelper::setUniformSlow(shaderProgram, "modelViewProjectionMatrix",
-			projMatrix * viewMatrix * landingPadModelMatrix);
-		labhelper::setUniformSlow(shaderProgram, "modelViewMatrix", viewMatrix * landingPadModelMatrix);
+			projMatrix * viewMatrix * gridMatrix);
+		labhelper::setUniformSlow(shaderProgram, "modelViewMatrix", viewMatrix * gridMatrix);
+		labhelper::setUniformSlow(shaderProgram, "currentTime", currentTime);
+
 		glBindVertexArray(VAO);
 
 		
 		
 		glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertices.size() / 3));
+
+
+
+	
+
+		
+
 
 
 		// Render overlay GUI.
