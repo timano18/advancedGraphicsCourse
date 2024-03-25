@@ -274,7 +274,7 @@ void display(void)
 
 	{
 		labhelper::perf::Scope s( "Background" );
-		drawBackground(viewMatrix, projMatrix);
+		//drawBackground(viewMatrix, projMatrix);
 	}
 	{
 		labhelper::perf::Scope s( "Scene" );
@@ -557,14 +557,14 @@ int main(int argc, char* argv[])
 
 	// Setup quad vertices and texture coordinates
 	float quadVertices[] = {
-		// positions        // texture Coords
-		-1.0f,  1.0f, 0.0f,  0.0f, 1.0f,
-		-1.0f, -1.0f, 0.0f,  0.0f, 0.0f,
-		 1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
+		// positions   // texCoords
+		-1.0f,  1.0f,  0.0f, 1.0f,
+		-1.0f, -1.0f,  0.0f, 0.0f,
+		 1.0f, -1.0f,  1.0f, 0.0f,
 
-		-1.0f,  1.0f, 0.0f,  0.0f, 1.0f,
-		 1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
-		 1.0f,  1.0f, 0.0f,  1.0f, 1.0f
+		-1.0f,  1.0f,  0.0f, 1.0f,
+		 1.0f, -1.0f,  1.0f, 0.0f,
+		 1.0f,  1.0f,  1.0f, 1.0f
 	};
 
 
@@ -577,10 +577,10 @@ int main(int argc, char* argv[])
 	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
 
 	// position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 	// texture coord attribute
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
 	// Unbind the VAO for now
@@ -588,11 +588,38 @@ int main(int argc, char* argv[])
 
 	// Create noise texture
 
-		// Texture dimensions
-	const int WIDTH = 512;
-	const int HEIGHT = 512;
+	// Texture dimensions
+	const int WIDTH = 1024;
+	const int HEIGHT = 1024;
+	float* noiseMap = new float[WIDTH * HEIGHT];
 
+	for (int i = 0; i < HEIGHT; i++) {
+		for (int j = 0; j < WIDTH; j++) {
+			float x = (float)i / (WIDTH - 1);
+			float y = (float)j / (HEIGHT - 1); 
+			float p = perlinNoice(10 * x, 10 * y);
+			float normalizedP = (p + 1.0f) / 2.0f;
+			//std::cout << p << std::endl;
+			noiseMap[i * WIDTH + j] = normalizedP;
+		}
+	}
+	GLuint noiseTexture;
+	glGenTextures(1, &noiseTexture);
+	glBindTexture(GL_TEXTURE_2D, noiseTexture);
 
+	// Set texture parameters as needed
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	// Upload the noise map to the GPU
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, WIDTH, HEIGHT, 0, GL_RED, GL_FLOAT, noiseMap);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	// Remember to free the dynamically allocated memory when it's no longer needed
+	delete[] noiseMap;
 
 
 	while(!stopRendering)
@@ -628,9 +655,23 @@ int main(int argc, char* argv[])
 		
 		glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertices.size() / 3));
 
+		
+		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glUseProgram(testShader);
+		glBindVertexArray(quadVAO);
+		glDisable(GL_DEPTH_TEST);
 
+		// Bind the texture to texture unit 0
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, noiseTexture);
 
-	
+		// Set the texture1 uniform to use texture unit 0
+		int texture1UniformLocation = glGetUniformLocation(testShader, "texture1");
+		glUniform1i(texture1UniformLocation, 0);
+
+		// Draw the quad
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		
 

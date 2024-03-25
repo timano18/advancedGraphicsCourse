@@ -10,5 +10,6 @@ in vec2 TexCoord;
 uniform sampler2D texture1;
 
 void main() {
-    FragColor = texture(texture1, TexCoord);
+    float intensity = texture(texture1, TexCoord).r;
+    FragColor = vec4(intensity, intensity, intensity,intensity);
 }
