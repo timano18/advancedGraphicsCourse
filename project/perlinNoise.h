@@ -19,6 +19,4 @@ float perlinNoise(float x, float y, int sizeX, int sizeY, float noiseScale);
 float perlinNoiseGen(float x, float y);
 
 
-float voronoiNoise(float x, float y, int sizeX, int sizeY, float noiseScale);
-
-float voronoiPointsGen(float x, float y, int sizeX, int sizeY, float randPts);
+float voronoiNoise(float x, float y, int sizeX, int sizeY, std::vector<glm::vec2> posArr, float noiseScale);

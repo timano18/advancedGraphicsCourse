@@ -73,6 +73,7 @@ float findClosest(std::vector<glm::vec2> posArr, int x, int y, bool closest) {
 	float dist;
 
 	for (int i = 0; i < posArr.size(); i++) {
+
 		// Get coords. of element in list
 		posIndex.x = posArr.at(i).x;
 		posIndex.y = posArr.at(i).y;
@@ -86,7 +87,7 @@ float findClosest(std::vector<glm::vec2> posArr, int x, int y, bool closest) {
 
 	distArr.sort();
 
-	// take first or second element, "closest"
+	// Take first or second element, "closest"
 	if (closest) {
 		return abs(distArr.front());
 	}
@@ -97,6 +98,7 @@ float findClosest(std::vector<glm::vec2> posArr, int x, int y, bool closest) {
 }
 
 //***** PERLIN START *****
+
 // Input coords. to generate perlin in point
 float perlinNoiseGen(float x, float y) {
 
@@ -147,39 +149,14 @@ float perlinNoise(float x, float y, int sizeX, int sizeY, float noiseScale) {
 
 
 //***** VORONOI START *****
-// Input coords. to generate voronoi in point. OBS! KAN finnas en chans för 0 st. punkter? Ta bort genom "low size -> no calcs."
-std::vector<glm::vec2> voronoiPointsGen(float x, float y, int sizeX, int sizeY, float randPts) {
+
+float voronoiNoise(float x, float y, int sizeX, int sizeY, std::vector<glm::vec2> posArr, float noiseScale) {
+
+	float reduceAmount = 5000;
+	float c1 = -1.0;
+	float c2 = 1.0;
 
 	float voronoiValue;
-	std::vector<glm::vec2> posArr;
-	glm::vec2 pos;
-
-	for (int j = 0; j < sizeY; ++j) {
-		for (int i = 0; i < sizeX; ++i) {
-
-			voronoiValue = abs(randomGradient(i + 1, j + 1).x); // +1 för att ta bort alltid prick (0,0)
-			if (voronoiValue < (randPts / (sizeX * sizeY))) {
-
-				pos.x = i;
-				pos.y = j;
-
-				posArr.push_back(pos); // Save coords. in array
-			}
-		}
-	}
-	return posArr;
-}
-
-// Generate voronoi map
-float voronoiNoise(float x, float y, int sizeX, int sizeY, float noiseScale) {
-
-	float randPts = 10; // 40: ok 240x240
-	float reduceAmount = 5000; // 5000: good for 240x240
-	float c1 =  -1.0;
-	float c2 =  1.0;
-
-	float voronoiValue;
-	std::vector<glm::vec2> posArr = voronoiPointsGen(x, y, sizeX, sizeY, randPts);
 
 	int nPts = posArr.size();
 
@@ -196,5 +173,4 @@ float voronoiNoise(float x, float y, int sizeX, int sizeY, float noiseScale) {
 	}
 	return voronoiValue * noiseScale;
 }
-
 //***** VORONOI END *****

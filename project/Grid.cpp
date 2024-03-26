@@ -13,7 +13,7 @@ Grid::Grid()
 	m_gridWidth = 120;
 	m_gridHeight = 120;
 	m_cellSize = 10.0f;
-	m_noiseScale = 100.0f; // en slider i programmet?
+	m_noiseScale = 750.0f;
 }
 
 // Parameterized constructor implementation
@@ -26,17 +26,58 @@ Grid::Grid(unsigned int gridWidth, unsigned int gridHeight, float cellSize, floa
 	// Initialize VAO, VBO, and EBO here or in generateGrid if appropriate
 }
 
+/*
+-Variabler kvar "perlinNoice.cpp"!!!-
+int levels = 3;
+float reduceAmount = 5000; // 5000: good for 240x240?
+float c1 = -1.0;
+float c2 = 1.0;
+*/
+
+/*
+-Kommentarer-
+Byta "vertice generator" mitt i programmet?
+randPts = 40 OK för 240x240??
+En slider i programmet för "noiseScale"?
+voronoi reduceAmount = 5000 240x240 bra?
+Byt namn "perlinNoice" -> "noiceMap"
+*/
+
+
 // generateGrid method implementation
 void Grid::generateGrid()
 {
 
+	// Generate voronoiPoints before loop
+	float randPts = 40;
+
+	float randValue;
+	std::vector<glm::vec2> posArr;
+	glm::vec2 pos;
+
+	for (int i = 0; i < m_gridWidth; ++i) {
+		for (int j = 0; j < m_gridHeight; ++j) {
+
+			randValue = abs(randomGradient(i + 1, j + 1).x); // +1 för att ta bort alltid prick (0,0)
+			if (randValue < (randPts / (m_gridWidth * m_gridHeight))) {
+
+				pos.x = i;
+				pos.y = j;
+
+				posArr.push_back(pos); // Save coords. in array
+			}
+		}
+	}
+
 	// Generate vertices
 	for (int i = 0; i < m_gridHeight; i++) {
 		for (int j = 0; j < m_gridWidth; j++) {
-			//float z = perlinNoise(i, j, m_gridWidth, m_gridHeight, 750);		// perlin
-			//float z = voronoiNoise(i, j, m_gridWidth, m_gridHeight, 750);	// voronoi
-			float z = perlinNoise(i, j, m_gridWidth, m_gridHeight, 750) + voronoiNoise(i, j, m_gridWidth, m_gridHeight, 750); // both
-			std::cout << z <<  '\n'; // test print
+
+			//float z = perlinNoise(i, j, m_gridWidth, m_gridHeight, 750);																					// perlin
+			//float z = voronoiNoise(i, j, m_gridWidth, m_gridHeight, posArr, 750);																			// voronoi
+			float z = perlinNoise(i, j, m_gridWidth, m_gridHeight, m_noiseScale) + voronoiNoise(i, j, m_gridWidth, m_gridHeight, posArr, m_noiseScale);		// both
+			std::cout << z <<  '\n';																														// test print
+
 			vertices.push_back(j * m_cellSize);
 			vertices.push_back(i * m_cellSize);
 			vertices.push_back(z);
