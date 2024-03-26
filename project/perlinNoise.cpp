@@ -2,14 +2,11 @@
 #include <algorithm>
 #include <cmath>
 
-// vec2 with floats
-typedef struct {
-	float x, y;
-} vec2float;
+#include <glm/glm.hpp>
+#include <glm/gtx/transform.hpp>
 
-// Generate randomness (paste)
-vec2float randomGradient(int ix, int iy)
-{
+// Generate randomness
+glm::vec2 randomGradient(int ix, int iy) {
 	// No precomputed gradients mean this works for any number of grid coordinates
 	const unsigned w = 8 * sizeof(unsigned);
 	const unsigned s = w / 2;
@@ -24,19 +21,18 @@ vec2float randomGradient(int ix, int iy)
 	float random = a * (3.14159265 / ~(~0u >> 1)); // in [0, 2*Pi]
 
 	// Create the vector from the angle
-	vec2float v;
+	glm::vec2 v;
 	v.x = sin(random);
 	v.y = cos(random);
 
 	return v;
 }
 
-
 // Find dot product of vectors
 float dotGridGradient(int ix, int iy, float x, float y)
 {
 	// Create random grad. for a square index
-	vec2float gradient = randomGradient(ix, iy);
+	glm::vec2 gradient = randomGradient(ix, iy);
 
 	// Find distance
 	float dx = x - (float)ix;
@@ -52,7 +48,7 @@ float interpolate(float a0, float a1, float weight)
 }
 
 // Input coords.
-float perlinNoice(float x, float y, int sizeX, int sizeY, float noiseScale)
+float perlinNoise(float x, float y, int sizeX, int sizeY, float noiseScale)
 {
 	x = (float)x * noiseScale / (sizeX - 1);
 	y = (float)y * noiseScale / (sizeY - 1);
