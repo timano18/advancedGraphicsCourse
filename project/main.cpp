@@ -23,9 +23,16 @@ using namespace glm;
 #include "hdr.h"
 #include "fbo.h"
 
+#include "Grid.h"
+#include "perlinNoise.h"
 
 
 
+
+// Grid
+Grid testGrid;
+int gridWidth = 100;
+int gridHeight= 100;
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -151,7 +158,7 @@ void initialize()
 
 
 	glEnable(GL_DEPTH_TEST); // enable Z-buffering
-	//glEnable(GL_CULL_FACE);  // enables backface culling
+	glEnable(GL_CULL_FACE);  // enables backface culling
 }
 
 void debugDrawLight(const glm::mat4& viewMatrix,
@@ -313,6 +320,18 @@ bool handleEvents(void)
 				labhelper::showGUI();
 			}
 		}
+		if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_1)
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+		}
+		if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_2)
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		}
+		if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_3)
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		}
 		if(event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT
 		   && (!labhelper::isGUIvisible() || !ImGui::GetIO().WantCaptureMouse))
 		{
@@ -382,8 +401,12 @@ bool handleEvents(void)
 void gui()
 {
 	// ----------------- Set variables --------------------------
+
+
+
 	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
 	            ImGui::GetIO().Framerate);
+
 	// ----------------------------------------------------------
 
 
@@ -394,88 +417,9 @@ void gui()
 }
 
 
-#include <vector>
-#include <algorithm>
-#include <cmath>
-
-// vec2 with floats
-typedef struct {
-	float x, y;
-} vec2float;
-
-// Generate randomness (paste)
-vec2float randomGradient(int ix, int iy)
-{
-	// No precomputed gradients mean this works for any number of grid coordinates
-	const unsigned w = 8 * sizeof(unsigned);
-	const unsigned s = w / 2;
-	unsigned a = ix, b = iy;
-	a *= 3284157443;
-
-	b ^= a << s | a >> w - s;
-	b *= 1911520717;
-
-	a ^= b << s | b >> w - s;
-	a *= 2048419325;
-	float random = a * (3.14159265 / ~(~0u >> 1)); // in [0, 2*Pi]
-
-	// Create the vector from the angle
-	vec2float v;
-	v.x = sin(random);
-	v.y = cos(random);
-
-	return v;
-}
 
 
-// Find dot product of vectors
-float dotGridGradient(int ix, int iy, float x, float y)
-{
-	// Create random grad. for a square index
-	vec2float gradient = randomGradient(ix, iy);
 
-	// Find distance
-	float dx = x - (float)ix;
-	float dy = y - (float)iy;
-
-	return (dx * gradient.x + dy * gradient.y);
-}
-
-// Interpolate two values with weight
-float interpolate(float a0, float a1, float weight)
-{
-	return (a1 - a0) * (3.0 - weight * 2.0) * weight * weight + a0;
-}
-
-// Input coords.
-float perlinNoice(float x, float y)
-{
-
-	// Find square corners
-	int x0 = (int)x;
-	int y0 = (int)y;
-	int x1 = x0 + 1;
-	int y1 = y0 + 1;
-
-	// Interpolation weight (from size of square)
-	float wx = x - (float)x0;
-	float wy = y - (float)y0;
-
-	// Generate + interpolate top corners
-	float n0 = dotGridGradient(x0, y0, x, y);
-	float n1 = dotGridGradient(x1, y0, x, y);
-	float ix0 = interpolate(n0, n1, wx);
-
-	// Generate + interpolate bot corners
-	n0 = dotGridGradient(x0, y1, x, y);
-	n1 = dotGridGradient(x1, y1, x, y);
-	float ix1 = interpolate(n0, n1, wx);
-
-	// Interpolate between top and bot
-	float value = interpolate(ix0, ix1, wy);
-
-	return value;
-}
 
 
 int main(int argc, char* argv[])
@@ -488,57 +432,12 @@ int main(int argc, char* argv[])
 	bool stopRendering = false;
 	auto startTime = std::chrono::system_clock::now();
 	
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	
 
 
 
-	// create vertices
-	int gridWidth = 100; 
-	int gridHeight = 100; 
-	float cellSize = 10.0f;
-	std::vector<float> vertices; 
-	for (int y = 0; y < gridHeight; ++y) {
-		for (int x = 0; x < gridWidth; ++x) {
-			// Bottom left corner
-			vertices.push_back(x * cellSize);
-			vertices.push_back(y * cellSize);
-			vertices.push_back(0.0f); // Z value
+	
 
-			// Bottom right corner
-			vertices.push_back((x + 1) * cellSize);
-			vertices.push_back(y * cellSize);
-			vertices.push_back(0.0f); // Z value
-
-			// Top right corner
-			vertices.push_back((x + 1) * cellSize);
-			vertices.push_back((y + 1) * cellSize);
-			vertices.push_back(0.0f); // Z value
-
-			// Top left corner
-			vertices.push_back(x * cellSize);
-			vertices.push_back((y + 1) * cellSize);
-			vertices.push_back(0.0f); // Z value
-			// Repeat the first vertex to close the square
-			vertices.push_back(x * cellSize);
-			vertices.push_back(y * cellSize);
-			vertices.push_back(0.0f); // Z value
-
-			// And the diagonal to make two triangles for rendering
-			vertices.push_back((x + 1) * cellSize);
-			vertices.push_back((y + 1) * cellSize);
-			vertices.push_back(0.0f); // Z value
-		}
-	}
-	unsigned int VAO, VBO;
-	glGenVertexArrays(1, &VAO); 
-	glBindVertexArray(VAO); 
-	glGenBuffers(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
 	mat4 gridMatrix = mat4(1.0f);
 
 	gridMatrix = glm::rotate(gridMatrix, glm::radians(90.0f), glm::vec3(1, 0, 0));
@@ -546,80 +445,9 @@ int main(int argc, char* argv[])
 
 
 
-
-
-
 	
-
-
-
-
-
-	// Setup quad vertices and texture coordinates
-	float quadVertices[] = {
-		// positions   // texCoords
-		-1.0f,  1.0f,  0.0f, 1.0f,
-		-1.0f, -1.0f,  0.0f, 0.0f,
-		 1.0f, -1.0f,  1.0f, 0.0f,
-
-		-1.0f,  1.0f,  0.0f, 1.0f,
-		 1.0f, -1.0f,  1.0f, 0.0f,
-		 1.0f,  1.0f,  1.0f, 1.0f
-	};
-
-
-
-	GLuint quadVAO, quadVBO;
-	glGenVertexArrays(1, &quadVAO);
-	glGenBuffers(1, &quadVBO);
-	glBindVertexArray(quadVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-
-	// position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-	// texture coord attribute
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-
-	// Unbind the VAO for now
-	glBindVertexArray(0);
-
-	// Create noise texture
-
-	// Texture dimensions
-	const int WIDTH = 1024;
-	const int HEIGHT = 1024;
-	float* noiseMap = new float[WIDTH * HEIGHT];
-
-	for (int i = 0; i < HEIGHT; i++) {
-		for (int j = 0; j < WIDTH; j++) {
-			float x = (float)i / (WIDTH - 1);
-			float y = (float)j / (HEIGHT - 1); 
-			float p = perlinNoice(10 * x, 10 * y);
-			float normalizedP = (p + 1.0f) / 2.0f;
-			//std::cout << p << std::endl;
-			noiseMap[i * WIDTH + j] = normalizedP;
-		}
-	}
-	GLuint noiseTexture;
-	glGenTextures(1, &noiseTexture);
-	glBindTexture(GL_TEXTURE_2D, noiseTexture);
-
-	// Set texture parameters as needed
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	// Upload the noise map to the GPU
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, WIDTH, HEIGHT, 0, GL_RED, GL_FLOAT, noiseMap);
-
-	glBindTexture(GL_TEXTURE_2D, 0);
-
-	// Remember to free the dynamically allocated memory when it's no longer needed
-	delete[] noiseMap;
+	testGrid.generateGrid();
+	
 
 
 	while(!stopRendering)
@@ -639,9 +467,13 @@ int main(int argc, char* argv[])
 		// render to window
 		display();
 
-
-
-		mat4 projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 5.0f, 2000.0f);
+		glUseProgram(shaderProgram);
+		labhelper::setUniformSlow(shaderProgram, "material_color", vec3(1.0f, 0.5f, 0.31f));
+		labhelper::setUniformSlow(shaderProgram, "point_light_color", vec3(1.0f, 1.0f, 1.0f));
+		labhelper::setUniformSlow(shaderProgram, "viewSpaceLightPosition", lightPosition);
+		labhelper::setUniformSlow(shaderProgram, "viewPos", cameraPosition);
+	
+		mat4 projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 5.0f, 200000.0f);
 		mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
 		
 		labhelper::setUniformSlow(shaderProgram, "modelViewProjectionMatrix",
@@ -649,33 +481,9 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(shaderProgram, "modelViewMatrix", viewMatrix * gridMatrix);
 		labhelper::setUniformSlow(shaderProgram, "currentTime", currentTime);
 
-		glBindVertexArray(VAO);
-
+		testGrid.Draw();
 		
 		
-		glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(vertices.size() / 3));
-
-		
-		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glUseProgram(testShader);
-		glBindVertexArray(quadVAO);
-		glDisable(GL_DEPTH_TEST);
-
-		// Bind the texture to texture unit 0
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, noiseTexture);
-
-		// Set the texture1 uniform to use texture unit 0
-		int texture1UniformLocation = glGetUniformLocation(testShader, "texture1");
-		glUniform1i(texture1UniformLocation, 0);
-
-		// Draw the quad
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-
-		
-
-
 
 		// Render overlay GUI.
 		gui();

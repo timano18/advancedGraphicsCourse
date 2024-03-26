@@ -23,16 +23,12 @@ out vec2 texCoord;
 out vec3 viewSpaceNormal;
 out vec3 viewSpacePosition;
 
+uniform sampler2D texture1;
+
 
 void main()
 {
-	float amplitude = 50.0;
-	float frequency = 0.01; // Controls the frequency. Higher values = more waves.
-	float speed = 1; // Controls the speed of the wave movement.
-
-	// Calculate the zValue with a consistent period, adding time to the phase shift
-	float zValue = amplitude * sin(frequency * position.x + currentTime * speed);  
-	gl_Position = modelViewProjectionMatrix * vec4(position.x, position.y, zValue, 1.0);
+	gl_Position = modelViewProjectionMatrix * vec4(position, 1.0);
 	texCoord = texCoordIn;
 	viewSpaceNormal = (normalMatrix * vec4(normalIn, 0.0)).xyz;
 	viewSpacePosition = (modelViewMatrix * vec4(position, 1.0)).xyz;

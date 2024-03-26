@@ -31,6 +31,9 @@ uniform float environment_multiplier;
 ///////////////////////////////////////////////////////////////////////////////
 uniform vec3 point_light_color = vec3(1.0, 1.0, 1.0);
 uniform float point_light_intensity_multiplier = 50.0;
+uniform vec3 lightPos;
+uniform vec3 viewPos;
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Constants
@@ -55,6 +58,7 @@ uniform vec3 viewSpaceLightPosition;
 ///////////////////////////////////////////////////////////////////////////////
 layout(location = 0) out vec4 fragmentColor;
 
+uniform sampler2D texture1;
 
 
 vec3 calculateDirectIllumiunation(vec3 wo, vec3 n)
@@ -91,6 +95,36 @@ void main()
 	}
 
 	vec3 shading = direct_illumination_term + indirect_illumination_term + emission_term;
+
+
+
+
+
+
+
+
+
+
+	//Temp shading
+	// ambient
+    float ambientStrength = 0.1;
+    vec3 ambient = ambientStrength * point_light_color;
+  	
+    // diffuse 
+    vec3 norm = normalize(viewSpaceNormal);
+    vec3 lightDir = normalize(viewSpaceLightPosition - viewSpacePosition);
+    float diff = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse = diff * point_light_color;
+    
+    // specular
+    float specularStrength = 0.5;
+    vec3 viewDir = normalize(viewPos - viewSpacePosition);
+    vec3 reflectDir = reflect(-lightDir, norm);  
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    vec3 specular = specularStrength * spec * point_light_color;  
+        
+    vec3 result = (ambient + diffuse + specular) * material_color;
+    fragmentColor = vec4(viewSpaceNormal   , 1.0);
 
 	fragmentColor = vec4(shading, 1.0);
 	return;
