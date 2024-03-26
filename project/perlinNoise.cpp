@@ -1,9 +1,14 @@
-#include <vector>
 #include <algorithm>
 #include <cmath>
+#include <vector>
+#include <list>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
+
+#define pi 3.14159265
+
+// ***** HELPER FUNCTIONS *****
 
 // Generate randomness
 glm::vec2 randomGradient(int ix, int iy) {
@@ -18,7 +23,7 @@ glm::vec2 randomGradient(int ix, int iy) {
 
 	a ^= b << s | b >> w - s;
 	a *= 2048419325;
-	float random = a * (3.14159265 / ~(~0u >> 1)); // in [0, 2*Pi]
+	float random = a * (pi / ~(~0u >> 1)); // in [0, 2*Pi]
 
 	// Create the vector from the angle
 	glm::vec2 v;
@@ -56,7 +61,43 @@ float divHeight(int levels) {
 	return divValue;
 }
 
-// Input coords.
+// Function to find closest neighbor in array("matrix")
+float findClosest(std::vector<glm::vec2> posArr, int x, int y, bool closest) {
+
+	glm::vec2 posIndex;
+
+	std::list<float> distArr;
+
+	float dx;
+	float dy;
+	float dist;
+
+	for (int i = 0; i < posArr.size(); i++) {
+		// Get coords. of element in list
+		posIndex.x = posArr.at(i).x;
+		posIndex.y = posArr.at(i).y;
+
+		dx = abs(x - posIndex.x);
+		dy = abs(y - posIndex.y);
+		dist = pow(dx, 2) + pow(dy, 2); // distance without sqrt, faster
+
+		distArr.push_back(dist);
+	}
+
+	distArr.sort();
+
+	// take first or second element, "closest"
+	if (closest) {
+		return abs(distArr.front());
+	}
+	else {
+		distArr.pop_front();
+		return abs(distArr.front());
+	}
+}
+
+//***** PERLIN START *****
+// Input coords. to generate perlin in point
 float perlinNoiseGen(float x, float y) {
 
 	// Find square corners
@@ -80,17 +121,18 @@ float perlinNoiseGen(float x, float y) {
 	float ix1 = interpolate(n0, n1, wx);
 
 	// Interpolate between top and bot
-	float genValue = interpolate(ix0, ix1, wy);
+	float perlinValue = interpolate(ix0, ix1, wy);
 
-	return genValue;
+	return perlinValue;
 }
 
+// Generate perlin map
+float perlinNoise(float x, float y, int sizeX, int sizeY, float noiseScale) {
 
-// Input coords.
-float perlinNoise(float x, float y, int sizeX, int sizeY, int levels, float noiseScale) {
+	int levels = 3;
 
-	x = (float)x * noiseScale / (sizeX - 1);
-	y = (float)y * noiseScale / (sizeY - 1);
+	x = (float)x / (sizeX - 1);
+	y = (float)y / (sizeY - 1);
 
 	float normalizedP = 0.0;
 
@@ -100,3 +142,59 @@ float perlinNoise(float x, float y, int sizeX, int sizeY, int levels, float nois
 
 	return (normalizedP / divHeight(levels)) * noiseScale;
 }
+
+//***** PERLIN END *****
+
+
+//***** VORONOI START *****
+// Input coords. to generate voronoi in point. OBS! KAN finnas en chans för 0 st. punkter? Ta bort genom "low size -> no calcs."
+std::vector<glm::vec2> voronoiPointsGen(float x, float y, int sizeX, int sizeY, float randPts) {
+
+	float voronoiValue;
+	std::vector<glm::vec2> posArr;
+	glm::vec2 pos;
+
+	for (int j = 0; j < sizeY; ++j) {
+		for (int i = 0; i < sizeX; ++i) {
+
+			voronoiValue = abs(randomGradient(i + 1, j + 1).x); // +1 för att ta bort alltid prick (0,0)
+			if (voronoiValue < (randPts / (sizeX * sizeY))) {
+
+				pos.x = i;
+				pos.y = j;
+
+				posArr.push_back(pos); // Save coords. in array
+			}
+		}
+	}
+	return posArr;
+}
+
+// Generate voronoi map
+float voronoiNoise(float x, float y, int sizeX, int sizeY, float noiseScale) {
+
+	float randPts = 10; // 40: ok 240x240
+	float reduceAmount = 5000; // 5000: good for 240x240
+	float c1 =  -1.0;
+	float c2 =  1.0;
+
+	float voronoiValue;
+	std::vector<glm::vec2> posArr = voronoiPointsGen(x, y, sizeX, sizeY, randPts);
+
+	int nPts = posArr.size();
+
+	if (nPts <= 2) {
+		voronoiValue = 1.0; // To few points, return nothing
+	}
+	else {
+		voronoiValue = c1 * findClosest(posArr, x, y, true) + c2 * findClosest(posArr, x, y, false);
+	}
+
+	voronoiValue = voronoiValue / reduceAmount; // Set to 0 - 1
+	if (voronoiValue > 1.0) {
+		voronoiValue = 1.0;
+	}
+	return voronoiValue * noiseScale;
+}
+
+//***** VORONOI END *****

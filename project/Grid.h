@@ -6,7 +6,7 @@
 class Grid {
 public: 
 	Grid();
-	Grid(unsigned int gridWidth, unsigned int gridHeight, float cellSize, int levels, float noiseScale);
+	Grid(unsigned int gridWidth, unsigned int gridHeight, float cellSize, float noiseScale);
 	void generateGrid();
 	void Draw();
 	void setGridWidth(unsigned int gridWidth);
@@ -18,7 +18,6 @@ private:
 	unsigned int m_gridWidth;
 	unsigned int m_gridHeight;
 	float m_cellSize;
-	int m_levels;
 	float m_noiseScale;
 	GLuint VAO, VBO, EBO;
 

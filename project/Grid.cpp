@@ -6,23 +6,22 @@
 #include <glm/gtx/transform.hpp>
 #include "Grid.h" 
 
+#include <iostream>
+
 Grid::Grid()
 {
-	m_gridWidth = 100;
-	m_gridHeight = 100;
+	m_gridWidth = 120;
+	m_gridHeight = 120;
 	m_cellSize = 10.0f;
-	m_levels = 3;
-	m_noiseScale = 2.0f;
-	
+	m_noiseScale = 100.0f; // en slider i programmet?
 }
 
 // Parameterized constructor implementation
-Grid::Grid(unsigned int gridWidth, unsigned int gridHeight, float cellSize, int levels, float noiseScale)
+Grid::Grid(unsigned int gridWidth, unsigned int gridHeight, float cellSize, float noiseScale)
 {
 	m_gridWidth = gridWidth;
 	m_gridHeight = gridHeight;
 	m_cellSize = cellSize;
-	m_levels = levels;
 	m_noiseScale = noiseScale;
 	// Initialize VAO, VBO, and EBO here or in generateGrid if appropriate
 }
@@ -34,7 +33,10 @@ void Grid::generateGrid()
 	// Generate vertices
 	for (int i = 0; i < m_gridHeight; i++) {
 		for (int j = 0; j < m_gridWidth; j++) {
-			float z = 1000 * perlinNoise(i, j, m_gridWidth, m_gridHeight, m_levels, m_noiseScale);
+			//float z = perlinNoise(i, j, m_gridWidth, m_gridHeight, 750);		// perlin
+			//float z = voronoiNoise(i, j, m_gridWidth, m_gridHeight, 750);	// voronoi
+			float z = perlinNoise(i, j, m_gridWidth, m_gridHeight, 750) + voronoiNoise(i, j, m_gridWidth, m_gridHeight, 750); // both
+			std::cout << z <<  '\n'; // test print
 			vertices.push_back(j * m_cellSize);
 			vertices.push_back(i * m_cellSize);
 			vertices.push_back(z);
