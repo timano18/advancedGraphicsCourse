@@ -47,11 +47,18 @@ float interpolate(float a0, float a1, float weight)
 	return (a1 - a0) * (3.0 - weight * 2.0) * weight * weight + a0;
 }
 
+// Calculated value to divide hight by st avoid values of > 1
+float divHeight(int levels) {
+	float divValue = 1;
+	for (int i = 1; i < levels; i++) {
+		divValue = divValue + (1 / pow(2, i));
+	}
+	return divValue;
+}
+
 // Input coords.
-float perlinNoise(float x, float y, int sizeX, int sizeY, float noiseScale)
-{
-	x = (float)x * noiseScale / (sizeX - 1);
-	y = (float)y * noiseScale / (sizeY - 1);
+float perlinNoiseGen(float x, float y) {
+
 	// Find square corners
 	int x0 = (int)x;
 	int y0 = (int)y;
@@ -73,7 +80,23 @@ float perlinNoise(float x, float y, int sizeX, int sizeY, float noiseScale)
 	float ix1 = interpolate(n0, n1, wx);
 
 	// Interpolate between top and bot
-	float value = interpolate(ix0, ix1, wy);
+	float genValue = interpolate(ix0, ix1, wy);
 
-	return ((value + 1.0f) / 2.0f);
+	return genValue;
+}
+
+
+// Input coords.
+float perlinNoise(float x, float y, int sizeX, int sizeY, int levels, float noiseScale) {
+
+	x = (float)x * noiseScale / (sizeX - 1);
+	y = (float)y * noiseScale / (sizeY - 1);
+
+	float normalizedP = 0.0;
+
+	for (int i = levels; i > 0; i--) {
+		normalizedP = normalizedP + (((perlinNoiseGen(x * pow(2, i), y * pow(2, i)) + 1.0) / 2.0) / i);
+	}
+
+	return (normalizedP / divHeight(levels)) * noiseScale;
 }
