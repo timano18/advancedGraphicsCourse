@@ -10,6 +10,7 @@ typedef struct {
 // Generate randomness (paste)
 vec2float randomGradient(int ix, int iy)
 {
+	
 	// No precomputed gradients mean this works for any number of grid coordinates
 	const unsigned w = 8 * sizeof(unsigned);
 	const unsigned s = w / 2;
@@ -79,5 +80,5 @@ float perlinNoice(float x, float y, int sizeX, int sizeY, float noiseScale)
 	// Interpolate between top and bot
 	float value = interpolate(ix0, ix1, wy);
 
-	return ((value + 1.0f) / 2.0f);
+	return ((value ));
 }

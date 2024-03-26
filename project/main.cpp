@@ -61,23 +61,29 @@ GLuint testShader;
 ///////////////////////////////////////////////////////////////////////////////
 float environment_multiplier = 1.5f;
 GLuint environmentMap;
+GLuint irradianceMap;
+GLuint reflectionMap;
 const std::string envmap_base_name = "001";
 
 ///////////////////////////////////////////////////////////////////////////////
 // Light source
 ///////////////////////////////////////////////////////////////////////////////
-vec3 lightPosition;
+vec3 lightPosition = vec3(0.0f, 813.0f, 752.0f);
+float lightRotation = 0.f;
+bool lightManualOnly = true;
+float point_light_intensity_multiplier = 1000.0f;
 vec3 point_light_color = vec3(1.f, 1.f, 1.f);
 
-float point_light_intensity_multiplier = 10000.0f;
 
 
+// new light
+vec3 lightPos = vec3(1.0, 1.0, 1.0);
 
 
 ///////////////////////////////////////////////////////////////////////////////
 // Camera parameters.
 ///////////////////////////////////////////////////////////////////////////////
-vec3 cameraPosition(-70.0f, 50.0f, 70.0f);
+vec3 cameraPosition(186.0f, 829.0f, 1080.0f);
 vec3 cameraDirection = normalize(vec3(0.0f) - cameraPosition);
 float cameraSpeed = 100.f;
 
@@ -138,6 +144,8 @@ void initialize()
 	///////////////////////////////////////////////////////////////////////
 	loadShaders(false);
 
+
+
 	///////////////////////////////////////////////////////////////////////
 	// Load models and set up model matrices
 	///////////////////////////////////////////////////////////////////////
@@ -155,7 +163,8 @@ void initialize()
 	// Load environment map
 	///////////////////////////////////////////////////////////////////////
 	environmentMap = labhelper::loadHdrTexture("../scenes/envmaps/" + envmap_base_name + ".hdr");
-
+	irradianceMap = labhelper::loadHdrTexture("../scenes/envmaps/" + envmap_base_name + "_irradiance.hdr");
+	reflectionMap = labhelper::loadHdrTexture("../scenes/envmaps/" + envmap_base_name + "_dl_0.hdr");
 
 	glEnable(GL_DEPTH_TEST); // enable Z-buffering
 	glEnable(GL_CULL_FACE);  // enables backface culling
@@ -166,8 +175,11 @@ void debugDrawLight(const glm::mat4& viewMatrix,
                     const glm::vec3& worldSpaceLightPos)
 {
 	mat4 modelMatrix = glm::translate(worldSpaceLightPos);
-	glUseProgram(shaderProgram);
-	labhelper::setUniformSlow(shaderProgram, "modelViewProjectionMatrix",
+	//modelMatrix = glm::scale(modelMatrix, vec3(20.0f));
+	glUseProgram(simpleShaderProgram);
+	labhelper::setUniformSlow(simpleShaderProgram, "material_color", vec3(1.0f, 1.0f, 0.0f));
+
+	labhelper::setUniformSlow(simpleShaderProgram, "modelViewProjectionMatrix",
 	                          projectionMatrix * viewMatrix * modelMatrix);
 	labhelper::render(sphereModel);
 }
@@ -255,11 +267,11 @@ void display(void)
 	///////////////////////////////////////////////////////////////////////////
 	// setup matrices
 	///////////////////////////////////////////////////////////////////////////
-	mat4 projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 5.0f, 2000.0f);
+	mat4 projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 5.0f, 200000.0f);
 	mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
 
 	vec4 lightStartPosition = vec4(40.0f, 40.0f, 0.0f, 1.0f);
-	lightPosition = vec3(rotate(currentTime, worldUp) * lightStartPosition);
+	//lightPosition = vec3(rotate(currentTime, worldUp) * lightStartPosition);
 	mat4 lightViewMatrix = lookAt(lightPosition, vec3(0.0f), worldUp);
 	mat4 lightProjMatrix = perspective(radians(45.0f), 1.0f, 25.0f, 100.0f);
 
@@ -268,6 +280,10 @@ void display(void)
 	///////////////////////////////////////////////////////////////////////////
 	glActiveTexture(GL_TEXTURE6);
 	glBindTexture(GL_TEXTURE_2D, environmentMap);
+	glActiveTexture(GL_TEXTURE7);
+	glBindTexture(GL_TEXTURE_2D, irradianceMap);
+	glActiveTexture(GL_TEXTURE8);
+	glBindTexture(GL_TEXTURE_2D, reflectionMap);
 	glActiveTexture(GL_TEXTURE0);
 
 
@@ -391,6 +407,14 @@ bool handleEvents(void)
 	{
 		cameraPosition += cameraSpeed * deltaTime * worldUp;
 	}
+	if (state[SDL_SCANCODE_RIGHT])
+	{
+		lightPosition += cameraSpeed * deltaTime * vec3(1.0f, 0.0, 0.0) / 2.0f;
+	}
+	if (state[SDL_SCANCODE_LEFT])
+	{
+		lightPosition -= cameraSpeed * deltaTime * vec3(1.0f, 0.0, 0.0) / 2.0f;
+	}
 	return quitEvent;
 }
 
@@ -406,6 +430,10 @@ void gui()
 
 	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
 	            ImGui::GetIO().Framerate);
+	ImGui::SliderFloat("Light pos x", &lightPosition.x, 0.0f, 1000.0f);
+	ImGui::SliderFloat("Light pos y", &lightPosition.y, 0.0f, 1000.0f);
+	ImGui::SliderFloat("Light pos z", &lightPosition.z, 0.0f, 1000.0f);
+	ImGui::Text("Camera Pos:  x: %.3f  y: %.3f  z: %.3f", cameraPosition.x, cameraPosition.y, cameraPosition.z);
 
 	// ----------------------------------------------------------
 
@@ -466,19 +494,40 @@ int main(int argc, char* argv[])
 
 		// render to window
 		display();
-
-		glUseProgram(shaderProgram);
-		labhelper::setUniformSlow(shaderProgram, "material_color", vec3(1.0f, 0.5f, 0.31f));
-		labhelper::setUniformSlow(shaderProgram, "point_light_color", vec3(1.0f, 1.0f, 1.0f));
-		labhelper::setUniformSlow(shaderProgram, "viewSpaceLightPosition", lightPosition);
-		labhelper::setUniformSlow(shaderProgram, "viewPos", cameraPosition);
 	
+
 		mat4 projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 5.0f, 200000.0f);
 		mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
+
+
+		// New uniforms
+
+
+
+		vec4 viewSpaceLightPosition = viewMatrix * vec4(lightPosition, 1);
+
+
+
+
+
+		glUseProgram(shaderProgram);
+		labhelper::setUniformSlow(shaderProgram, "material_color", vec3(0.0f, 0.7f, 0.0f));
+		labhelper::setUniformSlow(shaderProgram, "point_light_color", vec3(1.0f, 1.0f, 1.0f));
+		labhelper::setUniformSlow(shaderProgram, "point_light_intensity_multiplier",
+			point_light_intensity_multiplier);
+		labhelper::setUniformSlow(shaderProgram, "environment_multiplier", 1.0f);
+		labhelper::setUniformSlow(shaderProgram, "viewSpaceLightPosition", vec3(viewSpaceLightPosition));
+
+		labhelper::setUniformSlow(shaderProgram, "viewPos", cameraPosition);
+	
+
 		
 		labhelper::setUniformSlow(shaderProgram, "modelViewProjectionMatrix",
 			projMatrix * viewMatrix * gridMatrix);
 		labhelper::setUniformSlow(shaderProgram, "modelViewMatrix", viewMatrix * gridMatrix);
+		labhelper::setUniformSlow(shaderProgram, "viewInverse", inverse(viewMatrix));
+		labhelper::setUniformSlow(shaderProgram, "normalMatrix",
+			inverse(transpose(viewMatrix * gridMatrix)));
 		labhelper::setUniformSlow(shaderProgram, "currentTime", currentTime);
 
 		testGrid.Draw();
