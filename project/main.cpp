@@ -24,7 +24,7 @@ using namespace glm;
 #include "fbo.h"
 
 #include "Grid.h"
-#include "perlinNoise.h"
+#include "noise.h"
 
 
 
@@ -445,11 +445,6 @@ void gui()
 }
 
 
-
-
-
-
-
 int main(int argc, char* argv[])
 {
 	g_window = labhelper::init_window_SDL("OpenGL Project");
@@ -458,17 +453,17 @@ int main(int argc, char* argv[])
 	initialize();
 
 	bool stopRendering = false;
+
 	auto startTime = std::chrono::system_clock::now();
-	
-	
+	auto start = std::chrono::high_resolution_clock::now();												// Start clock
 
-
-
-	
+	//Generate initial grid
+	testGrid.generateGrid();
 
 	mat4 gridMatrix = mat4(1.0f);
 
 	gridMatrix = glm::rotate(gridMatrix, glm::radians(90.0f), glm::vec3(1, 0, 0));
+
 	gridMatrix = glm::translate(gridMatrix, glm::vec3(-gridWidth / 2.0f, -gridHeight / 2.0f, 0.0f));
 
 
@@ -480,7 +475,6 @@ int main(int argc, char* argv[])
 	std::cout << "Grid generation time: " << duration.count() << std::endl;
 
 	
-
 
 	while(!stopRendering)
 	{

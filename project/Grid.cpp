@@ -1,17 +1,19 @@
 #include <GL/glew.h>
 #include <vector>
-#include "perlinNoise.h"
+#include "noise.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 #include "Grid.h" 
 
+#include <iostream>
+
 Grid::Grid()
 {
-	m_gridWidth = 100;
-	m_gridHeight = 100;
+	m_gridWidth = 240;
+	m_gridHeight = 240;
 	m_cellSize = 10.0f;
-	m_noiseScale = 2.0f;
+	m_noiseScale = 750.0f;
 }
 
 // Parameterized constructor implementation
@@ -24,22 +26,42 @@ Grid::Grid(unsigned int gridWidth, unsigned int gridHeight, float cellSize, floa
 	// Initialize VAO, VBO, and EBO here or in generateGrid if appropriate
 }
 
+
 // generateGrid method implementation
 void Grid::generateGrid()
 {
 
+	// Generate voronoiPoints before loop
+	float randPts = 20;
+
+	float randValue;
+	std::vector<glm::vec2> posArr;
+	glm::vec2 pos;
+
+	for (int i = 0; i < m_gridWidth; ++i) {
+		for (int j = 0; j < m_gridHeight; ++j) {
+
+			randValue = abs(randomGradient(i + 1, j + 1).x); // +1 för att ta bort alltid prick (0,0)
+			if (randValue < (randPts / (m_gridWidth * m_gridHeight))) {
+	
+				pos.x = i;
+				pos.y = j;
+	
+				posArr.push_back(pos); // Save coords. in array
+			}
+		}
+	}
+
 	// Generate vertices
 	for (int i = 0; i < m_gridHeight; i++) {
 		for (int j = 0; j < m_gridWidth; j++) {
-			float z = 1000 * perlinNoice(i, j, m_gridWidth, m_gridHeight, m_noiseScale);
+
+			float z = perlinNoise(i, j, m_gridWidth, m_gridHeight, 750) + voronoiNoise(i, j, m_gridWidth, m_gridHeight, posArr, 100);
+
 			Vertex vertex;
 			vertex.position = glm::vec3(j * m_cellSize, i * m_cellSize, z);
 			vertices.push_back(vertex);
-			/*
-			vertices.push_back(j * m_cellSize);
-			vertices.push_back(i * m_cellSize);
-			vertices.push_back(z);
-			*/
+
 		}
 	}
 
