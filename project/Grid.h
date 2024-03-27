@@ -12,7 +12,11 @@ public:
 	void setGridWidth(unsigned int gridWidth);
 	void setGridHeight(unsigned int gridHeight);
 private: 
-	std::vector<float> vertices;
+	struct Vertex {
+		glm::vec3 position;
+		glm::vec3 normal;
+	};
+	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
 	std::vector<float> normals;
 	unsigned int m_gridWidth;
