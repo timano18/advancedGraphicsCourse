@@ -468,11 +468,9 @@ int main(int argc, char* argv[])
 
 
 
-	auto start = std::chrono::high_resolution_clock::now();	
+
 	testGrid.generateGrid();
-	auto stop = std::chrono::high_resolution_clock::now();
-	auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(stop - start);
-	std::cout << "Grid generation time: " << duration.count() << std::endl;
+
 
 	
 
