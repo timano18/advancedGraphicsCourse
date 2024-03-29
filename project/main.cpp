@@ -79,7 +79,7 @@ vec3 lightPos = vec3(1.0, 1.0, 1.0);
 vec3 cameraPosition(186.0f, 829.0f, 1080.0f);
 vec3 cameraDirection = normalize(vec3(0.0f) - cameraPosition);
 
-// tillfälliga parametrar för snabb kamera
+// Camera speed
 float cameraSpeedBase = 100.f;
 float cameraSpeed = cameraSpeedBase;
 float shiftSpeed = 10.0;
@@ -412,8 +412,6 @@ bool handleEvents(void)
 	{
 		lightPosition -= cameraSpeed * deltaTime * vec3(1.0f, 0.0, 0.0) / 2.0f;
 	}
-
-	// Höja camera speed, tillfälligt
 	if (state[SDL_SCANCODE_LSHIFT] == true)
 	{
 		cameraSpeed = cameraSpeedBase * shiftSpeed;
@@ -422,7 +420,6 @@ bool handleEvents(void)
 	{
 		cameraSpeed = cameraSpeedBase;
 	}
-
 	return quitEvent;
 }
 
@@ -452,12 +449,6 @@ void gui()
 	labhelper::perf::drawEventsWindow();
 }
 
-
-// Function to draw grid-array, declare before main (grid.Draw() on "for_each")
-void drawGrid(Grid grid) { grid.Draw(); }
-
-
-
 int main(int argc, char* argv[])
 {
 	g_window = labhelper::init_window_SDL("OpenGL Project");
@@ -470,39 +461,35 @@ int main(int argc, char* argv[])
 	auto startTime = std::chrono::system_clock::now();																				// Start clock, create inition chunks
 	auto start = std::chrono::high_resolution_clock::now();													
 
-	// Generate initial grid(s)
+	// Generate initial grid parameters
 	int gridWidth = 240;
 	int gridHeight = 240;
 	int xStartPos;
 	int yStartPos;
 	float cellSize = 10.0;
-	float perlinScale = 750;
-	float voronoiScale = 100;
+	float perlinScale = 750.0;
+	float voronoiScale = 100.0;
 
-	std::vector<Grid> grids;
+	// Generate initial chunk parameters
+	int xChunkStart = 0;
+	int yChunkStart = 0;
+	int xChunkEnd = 1;
+	int yChunkEnd = 3;
 
-	int startGridsX = 3;
-	int startGridsY = 3;
-	
-	// KOMMENTAR: Bra idé att lägga in variabel för "positoner"? lättare att hålla koll på individuella grids? "pos(x,y) -> x*gridWidth & y*gridHeight"? Är i och j i detta fallet
-	for (int i = 0; i < startGridsX; i++) {
-		for (int j = 0; j < startGridsY; j++) {
-			Grid grid(gridWidth, gridHeight, (gridWidth - 1) * i, (gridHeight - 1) * j, cellSize, perlinScale, voronoiScale);
-			grid.generateGrid();
-			grids.push_back(grid);
-		}
-	}
+	int LoD = 8; // Tillfällig
+
+	GridChunk initialChunk1;
+	GridChunk initialChunk2;
+																																				// *** KOMMENTARER: Lägg till "levels of detail". Går ej att stoppa in negativa koordinater just nu. Kanske borde byta från (x1,y1,x2,y2) till (x1,x2,y1,y2)? Fixa "GridChunk::generateChunkGrids". Gör klart "GridChunk::gridChunkCenter()"
+	// createNewStandardChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd);																	// Standard (värden i grid.cpp)
+	initialChunk1.createNewStandardChunk(0, 0, 3, 1);
+	// createNewChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);				// Välj variabler
+	initialChunk2.createNewChunk(0, 1, 3, 2, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, perlinScale, voronoiScale);						// Artificiellt lägre LoD. Måste ändra på filter-variablerna också för att det ska bli korrekt?
 
 	mat4 gridMatrix = mat4(1.0f);
 
 	gridMatrix = glm::rotate(gridMatrix, glm::radians(90.0f), glm::vec3(1, 0, 0));
 	gridMatrix = glm::translate(gridMatrix, glm::vec3(-gridWidth / 2.0f, -gridHeight / 2.0f, 0.0f));
-
-	// Put camera at the center of created grid(s)				// Ej fått detta att fungera ännu, kameran börjar ej på (0,0). Får sätta världens origo till kanten på första chunken (eller i mitten, där kameran börjar)
-	// orginelt: vec3 cameraPosition(186.0f, 829.0f, 1080.0f);
-	cameraPosition.x = (startGridsX * gridWidth * cellSize) / 2 - (0.5 * gridWidth * cellSize);
-	cameraPosition.y = (startGridsY * gridHeight * cellSize) / 2;
-	cameraPosition.z = 1000;
 
 	auto stop = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(stop - start);
@@ -533,14 +520,7 @@ int main(int argc, char* argv[])
 
 
 		// New uniforms
-
-
-
 		vec4 viewSpaceLightPosition = viewMatrix * vec4(lightPosition, 1);
-
-
-
-
 
 		glUseProgram(shaderProgram);
 		labhelper::setUniformSlow(shaderProgram, "material_color", vec3(0.0f, 0.7f, 0.0f));
@@ -562,10 +542,9 @@ int main(int argc, char* argv[])
 			inverse(transpose(viewMatrix * gridMatrix)));
 		labhelper::setUniformSlow(shaderProgram, "currentTime", currentTime);
 
-		// Draw all grids to the screen
-		
-		std::for_each(grids.begin(), grids.end(), drawGrid);
-		
+		// Draw initial grids to the screen
+		initialChunk1.DrawGridChunk();
+		initialChunk2.DrawGridChunk();
 
 		// Render overlay GUI.
 		gui();
