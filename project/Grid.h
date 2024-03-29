@@ -6,7 +6,7 @@
 class Grid {
 public: 
 	Grid();
-	Grid(unsigned int gridWidth, unsigned int gridHeight, float cellSize, float noiseScale);
+	Grid(unsigned int gridWidth, unsigned int gridHeight, int xStartPos, int yStartPos, float cellSize, float perlinScale, float voronoiScale);
 	void generateGrid();
 	void Draw();
 	void setGridWidth(unsigned int gridWidth);
@@ -21,8 +21,11 @@ private:
 	std::vector<float> normals;
 	unsigned int m_gridWidth;
 	unsigned int m_gridHeight;
+	int m_xStartPos;
+	int m_yStartPos;
 	float m_cellSize;
-	float m_noiseScale;
+	float m_perlinScale;
+	float m_voronoiScale;
 	GLuint VAO, VBO, EBO;
 
 };

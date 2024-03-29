@@ -12,17 +12,23 @@ Grid::Grid()
 {
 	m_gridWidth = 240;
 	m_gridHeight = 240;
+	m_xStartPos = 0;
+	m_yStartPos = 0;
 	m_cellSize = 10.0f;
-	m_noiseScale = 750.0f;
+	m_perlinScale = 750.0f;
+	m_voronoiScale = 100.0f;
 }
 
 // Parameterized constructor implementation
-Grid::Grid(unsigned int gridWidth, unsigned int gridHeight, float cellSize, float noiseScale)
+Grid::Grid(unsigned int gridWidth, unsigned int gridHeight, int xStartPos, int yStartPos, float cellSize, float perlinScale, float voronoiScale)
 {
 	m_gridWidth = gridWidth;
 	m_gridHeight = gridHeight;
+	m_xStartPos = xStartPos; // - 1 for correct starting placements
+	m_yStartPos = yStartPos;
 	m_cellSize = cellSize;
-	m_noiseScale = noiseScale;
+	m_perlinScale = perlinScale;
+	m_voronoiScale = voronoiScale;
 	// Initialize VAO, VBO, and EBO here or in generateGrid if appropriate
 }
 
@@ -52,11 +58,18 @@ void Grid::generateGrid()
 		}
 	}
 
-	// Generate vertices
-	for (int i = 0; i < m_gridHeight; i++) {
-		for (int j = 0; j < m_gridWidth; j++) {
+	// Positions for the loops (start/stop coords.)
+	int startX = m_xStartPos;
+	int startY = m_yStartPos;
+	int stopX  = m_xStartPos + m_gridWidth;
+	int stopY  = m_yStartPos + m_gridHeight;
 
-			float z = perlinNoise(i, j, m_gridWidth, m_gridHeight, 750) + voronoiNoise(i, j, m_gridWidth, m_gridHeight, posArr, 100);
+	// Generate vertices
+	for (int i = startY; i < stopY; i++) {
+		for (int j = startX; j < stopX; j++) {
+
+			// Generate noise
+			float z = perlinNoise(i, j, m_gridWidth, m_gridHeight, m_perlinScale) + voronoiNoise(i, j, m_gridWidth, m_gridHeight, posArr, m_voronoiScale);
 
 			Vertex vertex;
 			vertex.position = glm::vec3(j * m_cellSize, i * m_cellSize, z);
