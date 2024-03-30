@@ -15,6 +15,7 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 
 #include <perf.h>
 
+#include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 using namespace glm;
@@ -25,14 +26,6 @@ using namespace glm;
 
 #include "Grid.h"
 #include "noise.h"
-
-
-
-
-// Grid
-Grid testGrid;
-int gridWidth = 100;
-int gridHeight= 100;
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -85,7 +78,11 @@ vec3 lightPos = vec3(1.0, 1.0, 1.0);
 ///////////////////////////////////////////////////////////////////////////////
 vec3 cameraPosition(186.0f, 829.0f, 1080.0f);
 vec3 cameraDirection = normalize(vec3(0.0f) - cameraPosition);
-float cameraSpeed = 100.f;
+
+// Camera speed
+float cameraSpeedBase = 100.f;
+float cameraSpeed = cameraSpeedBase;
+float shiftSpeed = 10.0;
 
 vec3 worldUp(0.0f, 1.0f, 0.0f);
 
@@ -415,6 +412,14 @@ bool handleEvents(void)
 	{
 		lightPosition -= cameraSpeed * deltaTime * vec3(1.0f, 0.0, 0.0) / 2.0f;
 	}
+	if (state[SDL_SCANCODE_LSHIFT] == true)
+	{
+		cameraSpeed = cameraSpeedBase * shiftSpeed;
+	}
+	if (state[SDL_SCANCODE_LSHIFT] == false)
+	{
+		cameraSpeed = cameraSpeedBase;
+	}
 	return quitEvent;
 }
 
@@ -444,7 +449,6 @@ void gui()
 	labhelper::perf::drawEventsWindow();
 }
 
-
 int main(int argc, char* argv[])
 {
 	g_window = labhelper::init_window_SDL("OpenGL Project");
@@ -454,26 +458,45 @@ int main(int argc, char* argv[])
 
 	bool stopRendering = false;
 
-	auto startTime = std::chrono::system_clock::now();
-	auto start = std::chrono::high_resolution_clock::now();												// Start clock
+	auto startTime = std::chrono::system_clock::now();																				// Start clock, create inition chunks
+	auto start = std::chrono::high_resolution_clock::now();													
 
-	//Generate initial grid
-	testGrid.generateGrid();
+	// Generate initial grid parameters
+	int gridWidth = 240;
+	int gridHeight = 240;
+	int xStartPos;
+	int yStartPos;
+	float cellSize = 10.0;
+	float perlinScale = 750.0;
+	float voronoiScale = 100.0;
+
+	// Generate initial chunk parameters
+	int xChunkStart = 0;
+	int yChunkStart = 0;
+	int xChunkEnd = 1;
+	int yChunkEnd = 3;
+
+	int LoD = 8; // Tillfällig
+
+	GridChunk initialChunk1;
+	GridChunk initialChunk2;
+																																				// *** KOMMENTARER: Lägg till "levels of detail". Går ej att stoppa in negativa koordinater just nu. Kanske borde byta från (x1,y1,x2,y2) till (x1,x2,y1,y2)? Fixa "GridChunk::generateChunkGrids". Gör klart "GridChunk::gridChunkCenter()"
+	// createNewStandardChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd);																	// Standard (värden i grid.cpp)
+	initialChunk1.createNewStandardChunk(0, 0, 3, 1);
+	// createNewChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);				// Välj variabler
+	initialChunk2.createNewChunk(0, 1, 3, 2, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, perlinScale, voronoiScale);						// Artificiellt lägre LoD. Måste ändra på filter-variablerna också för att det ska bli korrekt?
 
 	mat4 gridMatrix = mat4(1.0f);
 
 	gridMatrix = glm::rotate(gridMatrix, glm::radians(90.0f), glm::vec3(1, 0, 0));
-
 	gridMatrix = glm::translate(gridMatrix, glm::vec3(-gridWidth / 2.0f, -gridHeight / 2.0f, 0.0f));
 
-
-
-
-	testGrid.generateGrid();
-
+	auto stop = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(stop - start);
+	std::cout << "Initial grid(s); generation time: " << duration.count() << std::endl;												// End clock, create inition chunks
 
 	
-
+	// Start render-loop
 	while(!stopRendering)
 	{
 		//update currentTime
@@ -497,14 +520,7 @@ int main(int argc, char* argv[])
 
 
 		// New uniforms
-
-
-
 		vec4 viewSpaceLightPosition = viewMatrix * vec4(lightPosition, 1);
-
-
-
-
 
 		glUseProgram(shaderProgram);
 		labhelper::setUniformSlow(shaderProgram, "material_color", vec3(0.0f, 0.7f, 0.0f));
@@ -526,9 +542,9 @@ int main(int argc, char* argv[])
 			inverse(transpose(viewMatrix * gridMatrix)));
 		labhelper::setUniformSlow(shaderProgram, "currentTime", currentTime);
 
-		testGrid.Draw();
-		
-		
+		// Draw initial grids to the screen
+		initialChunk1.DrawGridChunk();
+		initialChunk2.DrawGridChunk();
 
 		// Render overlay GUI.
 		gui();
