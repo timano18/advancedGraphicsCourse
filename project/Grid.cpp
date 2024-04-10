@@ -200,7 +200,7 @@ std::vector<Grid> GridChunk::generateChunkGrids(int xStartPosChunk, int yStartPo
 
 // *** Functions grid ***
 // Draw grid
-void Grid::DrawGrid()
+void Grid::drawGrid()
 {
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
@@ -236,8 +236,8 @@ void GridChunk::createNewChunk(int startX, int startY, int endX, int endY, unsig
 };
 
 // GridChunk draw
-void drawChunkGrid(Grid grid) { grid.DrawGrid(); } // Draw gridChunk: Function to draw grid-array, declare before main (grid.Draw() on "for_each")
-void GridChunk::DrawGridChunk() {
+void drawChunkGrid(Grid grid) { grid.drawGrid(); } // Draw gridChunk: Function to draw grid-array, declare before main (grid.Draw() on "for_each")
+void GridChunk::drawGridChunk() {
 	std::for_each(m_grids.begin(), m_grids.end(), drawChunkGrid);
 	//std::cout << "Number of grids in chunk: " << m_grids.size() << '\n'; // För felsökning, kan ta bort
 };

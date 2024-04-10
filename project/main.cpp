@@ -9,6 +9,7 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 #include <algorithm>
 #include <chrono>
 #include <iostream>
+#include <list>
 
 #include <labhelper.h>
 #include <imgui.h>
@@ -26,6 +27,7 @@ using namespace glm;
 
 #include "Grid.h"
 #include "noise.h"
+#include "L-system.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -453,7 +455,27 @@ int main(int argc, char* argv[])
 {
 	g_window = labhelper::init_window_SDL("OpenGL Project");
 
-	
+
+
+
+
+	int testSize = 1;
+	std::list<char> testList = {'B', 'A'};
+
+
+	Tree testTree1;
+	testTree1.generateTree();
+	testTree1.printTree();
+
+	Tree testTree2;
+	testTree2.setTree(testSize, testList);
+	testTree2.generateTree();
+	testTree2.printTree();
+
+
+
+
+
 	initialize();
 
 	bool stopRendering = false;
@@ -476,13 +498,14 @@ int main(int argc, char* argv[])
 	int xChunkEnd = 1;
 	int yChunkEnd = 3;
 
-	int LoD = 8; // Tillfällig
+	int LoD = 1; // Tillfällig
 
 	GridChunk initialChunk1;
 	GridChunk initialChunk2;
 																																				// *** KOMMENTARER: Lägg till "levels of detail". Går ej att stoppa in negativa koordinater just nu. Kanske borde byta från (x1,y1,x2,y2) till (x1,x2,y1,y2)? Fixa "GridChunk::generateChunkGrids". Gör klart "GridChunk::gridChunkCenter()"
 	// createNewStandardChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd);																	// Standard (värden i grid.cpp)
 	initialChunk1.createNewStandardChunk(0, 0, 3, 1);
+
 	// createNewChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);				// Välj variabler
 	initialChunk2.createNewChunk(0, 1, 3, 2, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, perlinScale, voronoiScale);						// Artificiellt lägre LoD. Måste ändra på filter-variablerna också för att det ska bli korrekt?
 
@@ -542,9 +565,11 @@ int main(int argc, char* argv[])
 			inverse(transpose(viewMatrix * gridMatrix)));
 		labhelper::setUniformSlow(shaderProgram, "currentTime", currentTime);
 
-		// Draw initial grids to the screen
-		initialChunk1.DrawGridChunk();
-		initialChunk2.DrawGridChunk();
+		// Draw objects to the screen
+		
+		//initialChunk1.drawGridChunk();
+		initialChunk2.drawGridChunk();
+		testTree1.drawTree();
 
 		// Render overlay GUI.
 		gui();

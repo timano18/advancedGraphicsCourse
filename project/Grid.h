@@ -7,7 +7,7 @@ public:
 	Grid(unsigned int gridWidth, unsigned int gridHeight, int xStartPos, int yStartPos, float cellSize, float perlinScale, float voronoiScale);
 
 	void generateGrid();
-	void DrawGrid();
+	void drawGrid();
 	void setGridWidth(unsigned int gridWidth);
 	void setGridHeight(unsigned int gridHeight);
 
@@ -37,7 +37,7 @@ public:
 	std::vector<Grid> generateChunkGrids(int xStartPosChunk, int yStartPosChunk, int xEndPosChunk, int yEndPosChunk, unsigned int gridWidth, unsigned int gridHeight, float cellSize, float perlinScale, float voronoiScale);
 	void createNewStandardChunk(int startX, int startY, int endX, int endY);																																								// Default
 	void createNewChunk(int startX, int startY, int endX, int endY, unsigned int gridWidth, unsigned int gridHeight, float cellSize, float perlinScale, float voronoiScale);																// Set parameters for the grids
-	void DrawGridChunk();
+	void drawGridChunk();
 	glm::vec3 gridChunkCenter();
 
 private:
