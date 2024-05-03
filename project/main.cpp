@@ -398,11 +398,11 @@ bool handleEvents(void)
 	{
 		cameraPosition += cameraSpeed * deltaTime * cameraRight;
 	}
-	if(state[SDL_SCANCODE_Q])
+	if(state[SDL_SCANCODE_LCTRL])
 	{
 		cameraPosition -= cameraSpeed * deltaTime * worldUp;
 	}
-	if(state[SDL_SCANCODE_E])
+	if(state[SDL_SCANCODE_SPACE])
 	{
 		cameraPosition += cameraSpeed * deltaTime * worldUp;
 	}
@@ -455,33 +455,45 @@ int main(int argc, char* argv[])
 {
 	g_window = labhelper::init_window_SDL("OpenGL Project");
 
+	auto startTime = std::chrono::system_clock::now();																				// Start clock, create initial chunks
+	auto start = std::chrono::high_resolution_clock::now();
 
-
-
-
-	int testSize = 1;
-	std::list<char> testList = {'B', 'A'};
-
-
+	// TEST TREES
 	Tree testTree1;
-	testTree1.generateTree();
-	testTree1.printTree();
+	testTree1.moveTreeBase(0, 0, 0);
+	testTree1.setTree(4, { 'B' });
+	testTree1.generateTree(3);
+	//testTree1.printTree();
 
-	Tree testTree2;
-	testTree2.setTree(testSize, testList);
-	testTree2.generateTree();
-	testTree2.printTree();
+	
+	//Tree testTree2;
+	//testTree2.moveTreeBase(100, 0, 0);
+	//testTree2.generateTree(2);
+	//testTree2.printTree();
 
+	//Tree testTree3;
+	//testTree3.moveTreeBase(200, 0, 0);
+	//testTree3.generateTree(3);
+	//testTree3.printTree();
+	
 
+	testTree1.toCoords2D();
+	//testTree2.toCoords2D();
+	//testTree3.toCoords2D();
 
+	auto stop = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(stop - start);
+	std::cout << "Initial grid(s); generation time: " << duration.count() << std::endl;												// End clock, create inition chunks
+
+	cameraPosition = { 0, 0, 0 }; // Se träd lättare vid programstart
 
 
 	initialize();
 
 	bool stopRendering = false;
 
-	auto startTime = std::chrono::system_clock::now();																				// Start clock, create inition chunks
-	auto start = std::chrono::high_resolution_clock::now();													
+	//auto startTime = std::chrono::system_clock::now();																				// Start clock, create inition chunks
+	//auto start = std::chrono::high_resolution_clock::now();													
 
 	// Generate initial grid parameters
 	int gridWidth = 240;
@@ -498,29 +510,30 @@ int main(int argc, char* argv[])
 	int xChunkEnd = 1;
 	int yChunkEnd = 3;
 
-	int LoD = 1; // Tillfällig
+	int LoD = 4; // Tillfällig
 
 	GridChunk initialChunk1;
-	GridChunk initialChunk2;
+	// createNewChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);
+	initialChunk1.createNewChunk(-1, -1, 1, 1, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, 0, 0);
 																																				// *** KOMMENTARER: Lägg till "levels of detail". Går ej att stoppa in negativa koordinater just nu. Kanske borde byta från (x1,y1,x2,y2) till (x1,x2,y1,y2)? Fixa "GridChunk::generateChunkGrids". Gör klart "GridChunk::gridChunkCenter()"
 	// createNewStandardChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd);																	// Standard (värden i grid.cpp)
-	initialChunk1.createNewStandardChunk(0, 0, 3, 1);
+	//initialChunk1.createNewStandardChunk(0, 0, 3, 1);
 
 	// createNewChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);				// Välj variabler
-	initialChunk2.createNewChunk(0, 1, 3, 2, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, perlinScale, voronoiScale);						// Artificiellt lägre LoD. Måste ändra på filter-variablerna också för att det ska bli korrekt?
+	//initialChunk2.createNewChunk(0, 1, 3, 2, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, perlinScale, voronoiScale);						// Artificiellt lägre LoD. Måste ändra på filter-variablerna också för att det ska bli korrekt?
 
 	mat4 gridMatrix = mat4(1.0f);
 
 	gridMatrix = glm::rotate(gridMatrix, glm::radians(90.0f), glm::vec3(1, 0, 0));
 	gridMatrix = glm::translate(gridMatrix, glm::vec3(-gridWidth / 2.0f, -gridHeight / 2.0f, 0.0f));
 
-	auto stop = std::chrono::high_resolution_clock::now();
-	auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(stop - start);
-	std::cout << "Initial grid(s); generation time: " << duration.count() << std::endl;												// End clock, create inition chunks
+	//auto stop = std::chrono::high_resolution_clock::now();
+	//auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(stop - start);
+	//std::cout << "Initial grid(s); generation time: " << duration.count() << std::endl;												// End clock, create inition chunks
 
 	
 	// Start render-loop
-	while(!stopRendering)
+	while (!stopRendering)
 	{
 		//update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
@@ -532,11 +545,11 @@ int main(int argc, char* argv[])
 		stopRendering = handleEvents();
 
 		// Inform imgui of new frame
-		labhelper::newFrame( g_window );
+		labhelper::newFrame(g_window);
 
 		// render to window
 		display();
-	
+
 
 		mat4 projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 5.0f, 200000.0f);
 		mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
@@ -554,9 +567,9 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(shaderProgram, "viewSpaceLightPosition", vec3(viewSpaceLightPosition));
 
 		labhelper::setUniformSlow(shaderProgram, "viewPos", cameraPosition);
-	
 
-		
+
+
 		labhelper::setUniformSlow(shaderProgram, "modelViewProjectionMatrix",
 			projMatrix * viewMatrix * gridMatrix);
 		labhelper::setUniformSlow(shaderProgram, "modelViewMatrix", viewMatrix * gridMatrix);
@@ -566,10 +579,14 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(shaderProgram, "currentTime", currentTime);
 
 		// Draw objects to the screen
-		
+
 		//initialChunk1.drawGridChunk();
-		initialChunk2.drawGridChunk();
+		//initialChunk1.drawGridChunk();
+		//initialChunk2.drawGridChunk();
+
 		testTree1.drawTree();
+		//testTree2.drawTree();
+		//testTree3.drawTree();
 
 		// Render overlay GUI.
 		gui();
