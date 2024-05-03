@@ -44,34 +44,17 @@ bool g_isMouseDragging = false;
 ///////////////////////////////////////////////////////////////////////////////
 // Shader programs
 ///////////////////////////////////////////////////////////////////////////////
-GLuint shaderProgram;       // Shader for rendering the final image
-GLuint simpleShaderProgram; // Shader used to draw the shadow map
-GLuint backgroundProgram;
+GLuint simpleShaderProgram;
 GLuint testShader;
 
-///////////////////////////////////////////////////////////////////////////////
-// Environment
-///////////////////////////////////////////////////////////////////////////////
-float environment_multiplier = 1.5f;
-GLuint environmentMap;
-GLuint irradianceMap;
-GLuint reflectionMap;
-const std::string envmap_base_name = "001";
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Light source
 ///////////////////////////////////////////////////////////////////////////////
 vec3 lightPosition = vec3(0.0f, 813.0f, 752.0f);
-float lightRotation = 0.f;
-bool lightManualOnly = true;
-float point_light_intensity_multiplier = 1000.0f;
-vec3 point_light_color = vec3(1.f, 1.f, 1.f);
-
-
-
-// new light
-vec3 lightPos = vec3(1.0, 1.0, 1.0);
-
+float sunangle = 0.0f;
+vec3 lightDirection;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Camera parameters.
@@ -89,15 +72,9 @@ vec3 worldUp(0.0f, 1.0f, 0.0f);
 ///////////////////////////////////////////////////////////////////////////////
 // Models
 ///////////////////////////////////////////////////////////////////////////////
-labhelper::Model* fighterModel = nullptr;
-labhelper::Model* landingpadModel = nullptr;
 labhelper::Model* sphereModel = nullptr;
-labhelper::Model* sponzaModel = nullptr;
 
-mat4 roomModelMatrix;
-mat4 landingPadModelMatrix;
-mat4 fighterModelMatrix;
-mat4 sponzaModelMatrix;
+mat4 gridMatrix;
 
 void loadShaders(bool is_reload)
 {
@@ -105,18 +82,6 @@ void loadShaders(bool is_reload)
 	if(shader != 0)
 	{
 		simpleShaderProgram = shader;
-	}
-
-	shader = labhelper::loadShaderProgram("../project/background.vert", "../project/background.frag", is_reload);
-	if(shader != 0)
-	{
-		backgroundProgram = shader;
-	}
-
-	shader = labhelper::loadShaderProgram("../project/shading.vert", "../project/shading.frag", is_reload);
-	if(shader != 0)
-	{
-		shaderProgram = shader;
 	}
 	
 	shader = labhelper::loadShaderProgram("../project/testShader.vert", "../project/testShader.frag", is_reload);
@@ -146,22 +111,9 @@ void initialize()
 	///////////////////////////////////////////////////////////////////////
 	// Load models and set up model matrices
 	///////////////////////////////////////////////////////////////////////
-	fighterModel = labhelper::loadModelFromOBJ("../scenes/NewShip.obj");
-	landingpadModel = labhelper::loadModelFromOBJ("../scenes/landingpad.obj");
+
 	sphereModel = labhelper::loadModelFromOBJ("../scenes/sphere.obj");
 
-
-
-	roomModelMatrix = mat4(1.0f);
-	fighterModelMatrix = translate(15.0f * worldUp);
-	landingPadModelMatrix = mat4(1.0f);
-	sponzaModelMatrix = mat4(1.0f);
-	///////////////////////////////////////////////////////////////////////
-	// Load environment map
-	///////////////////////////////////////////////////////////////////////
-	environmentMap = labhelper::loadHdrTexture("../scenes/envmaps/" + envmap_base_name + ".hdr");
-	irradianceMap = labhelper::loadHdrTexture("../scenes/envmaps/" + envmap_base_name + "_irradiance.hdr");
-	reflectionMap = labhelper::loadHdrTexture("../scenes/envmaps/" + envmap_base_name + "_dl_0.hdr");
 
 	glEnable(GL_DEPTH_TEST); // enable Z-buffering
 	glEnable(GL_CULL_FACE);  // enables backface culling
@@ -172,7 +124,7 @@ void debugDrawLight(const glm::mat4& viewMatrix,
                     const glm::vec3& worldSpaceLightPos)
 {
 	mat4 modelMatrix = glm::translate(worldSpaceLightPos);
-	//modelMatrix = glm::scale(modelMatrix, vec3(20.0f));
+	modelMatrix = glm::scale(modelMatrix, vec3(30.0f));
 	glUseProgram(simpleShaderProgram);
 	labhelper::setUniformSlow(simpleShaderProgram, "material_color", vec3(1.0f, 1.0f, 0.0f));
 
@@ -182,62 +134,6 @@ void debugDrawLight(const glm::mat4& viewMatrix,
 }
 
 
-void drawBackground(const mat4& viewMatrix, const mat4& projectionMatrix)
-{
-	glUseProgram(backgroundProgram);
-	labhelper::setUniformSlow(backgroundProgram, "environment_multiplier", environment_multiplier);
-	labhelper::setUniformSlow(backgroundProgram, "inv_PV", inverse(projectionMatrix * viewMatrix));
-	labhelper::setUniformSlow(backgroundProgram, "camera_pos", cameraPosition);
-	labhelper::drawFullScreenQuad();
-}
-
-
-///////////////////////////////////////////////////////////////////////////////
-/// This function is used to draw the main objects on the scene
-///////////////////////////////////////////////////////////////////////////////
-void drawScene(GLuint currentShaderProgram,
-               const mat4& viewMatrix,
-               const mat4& projectionMatrix,
-               const mat4& lightViewMatrix,
-               const mat4& lightProjectionMatrix)
-{
-	glUseProgram(currentShaderProgram);
-	// Light source
-	vec4 viewSpaceLightPosition = viewMatrix * vec4(lightPosition, 1.0f);
-	labhelper::setUniformSlow(currentShaderProgram, "point_light_color", point_light_color);
-	labhelper::setUniformSlow(currentShaderProgram, "point_light_intensity_multiplier",
-	                          point_light_intensity_multiplier);
-	labhelper::setUniformSlow(currentShaderProgram, "viewSpaceLightPosition", vec3(viewSpaceLightPosition));
-	labhelper::setUniformSlow(currentShaderProgram, "viewSpaceLightDir",
-	                          normalize(vec3(viewMatrix * vec4(-lightPosition, 0.0f))));
-
-
-	// Environment
-	labhelper::setUniformSlow(currentShaderProgram, "environment_multiplier", environment_multiplier);
-
-	// camera
-	labhelper::setUniformSlow(currentShaderProgram, "viewInverse", inverse(viewMatrix));
-
-	// landing pad
-	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
-	                          projectionMatrix * viewMatrix * landingPadModelMatrix);
-	labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * landingPadModelMatrix);
-	labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
-	                          inverse(transpose(viewMatrix * landingPadModelMatrix)));
-
-	labhelper::render(landingpadModel);
-
-	// Fighter
-	labhelper::setUniformSlow(currentShaderProgram, "modelViewProjectionMatrix",
-	                          projectionMatrix * viewMatrix * fighterModelMatrix);
-	labhelper::setUniformSlow(currentShaderProgram, "modelViewMatrix", viewMatrix * fighterModelMatrix);
-	labhelper::setUniformSlow(currentShaderProgram, "normalMatrix",
-	                          inverse(transpose(viewMatrix * fighterModelMatrix)));
-
-	labhelper::render(fighterModel);
-
-
-}
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -261,28 +157,6 @@ void display(void)
 		}
 	}
 
-	///////////////////////////////////////////////////////////////////////////
-	// setup matrices
-	///////////////////////////////////////////////////////////////////////////
-	mat4 projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 5.0f, 200000.0f);
-	mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
-
-	vec4 lightStartPosition = vec4(40.0f, 40.0f, 0.0f, 1.0f);
-	//lightPosition = vec3(rotate(currentTime, worldUp) * lightStartPosition);
-	mat4 lightViewMatrix = lookAt(lightPosition, vec3(0.0f), worldUp);
-	mat4 lightProjMatrix = perspective(radians(45.0f), 1.0f, 25.0f, 100.0f);
-
-	///////////////////////////////////////////////////////////////////////////
-	// Bind the environment map(s) to unused texture units
-	///////////////////////////////////////////////////////////////////////////
-	glActiveTexture(GL_TEXTURE6);
-	glBindTexture(GL_TEXTURE_2D, environmentMap);
-	glActiveTexture(GL_TEXTURE7);
-	glBindTexture(GL_TEXTURE_2D, irradianceMap);
-	glActiveTexture(GL_TEXTURE8);
-	glBindTexture(GL_TEXTURE_2D, reflectionMap);
-	glActiveTexture(GL_TEXTURE0);
-
 
 	///////////////////////////////////////////////////////////////////////////
 	// Draw from camera
@@ -291,17 +165,7 @@ void display(void)
 	glViewport(0, 0, windowWidth, windowHeight);
 	glClearColor(0.2f, 0.2f, 0.8f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	{
-		labhelper::perf::Scope s( "Background" );
-		//drawBackground(viewMatrix, projMatrix);
-	}
-	{
-		labhelper::perf::Scope s( "Scene" );
-		//drawScene( shaderProgram, viewMatrix, projMatrix, lightViewMatrix, lightProjMatrix );
-
-	}
-	debugDrawLight(viewMatrix, projMatrix, vec3(lightPosition));
+	
 
 }
 
@@ -424,6 +288,18 @@ bool handleEvents(void)
 }
 
 
+
+
+// Time of day t ranges from 0 (sunrise) to 1 (sunset)
+glm::vec3 rotateSun(float t)
+{
+	float degrees = glm::mix(-90.0f, 90.0f, t); // Interpolate angle from -90 to 90
+	glm::mat4 rot = glm::rotate(glm::mat4(1.0f), glm::radians(degrees), glm::vec3(0, 0, 1)); // Rotate around Z-axis
+	glm::vec4 initialDir = glm::vec4(1, 0, 0, 1); // Starting east
+	glm::vec4 rotatedDir = rot * initialDir;
+	return glm::vec3(rotatedDir);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 /// This function is to hold the general GUI logic
 ///////////////////////////////////////////////////////////////////////////////
@@ -435,10 +311,13 @@ void gui()
 
 	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
 	            ImGui::GetIO().Framerate);
-	ImGui::SliderFloat("Light pos x", &lightPosition.x, 0.0f, 1000.0f);
-	ImGui::SliderFloat("Light pos y", &lightPosition.y, 0.0f, 1000.0f);
-	ImGui::SliderFloat("Light pos z", &lightPosition.z, 0.0f, 1000.0f);
+	ImGui::SliderFloat("Light pos x", &lightPosition.x, -10000.0f, 10000.0f);
+	ImGui::SliderFloat("Light pos y", &lightPosition.y, -10000.0f, 10000.0f);
+	ImGui::SliderFloat("Light pos z", &lightPosition.z, -10000.0f, 10000.0f);
 	ImGui::Text("Camera Pos:  x: %.3f  y: %.3f  z: %.3f", cameraPosition.x, cameraPosition.y, cameraPosition.z);
+	ImGui::SliderFloat("Sun angle", &sunangle, 0.0f, 2.0f);
+	ImGui::Text("Light Direction:  x: %.3f  y: %.3f  z: %.3f", lightDirection.x, lightDirection.y, lightDirection.z);
+
 
 	// ----------------------------------------------------------
 
@@ -482,11 +361,11 @@ int main(int argc, char* argv[])
 	GridChunk initialChunk2;
 																																				// *** KOMMENTARER: Lägg till "levels of detail". Går ej att stoppa in negativa koordinater just nu. Kanske borde byta från (x1,y1,x2,y2) till (x1,x2,y1,y2)? Fixa "GridChunk::generateChunkGrids". Gör klart "GridChunk::gridChunkCenter()"
 	// createNewStandardChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd);																	// Standard (värden i grid.cpp)
-	initialChunk1.createNewStandardChunk(0, 0, 3, 1);
+	initialChunk1.createNewStandardChunk(0, 0, 1, 1);
 	// createNewChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);				// Välj variabler
-	initialChunk2.createNewChunk(0, 1, 3, 2, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, perlinScale, voronoiScale);						// Artificiellt lägre LoD. Måste ändra på filter-variablerna också för att det ska bli korrekt?
+	//initialChunk2.createNewChunk(0, 1, 3, 2, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, perlinScale, voronoiScale);						// Artificiellt lägre LoD. Måste ändra på filter-variablerna också för att det ska bli korrekt?
 
-	mat4 gridMatrix = mat4(1.0f);
+	gridMatrix = mat4(1.0f);
 
 	gridMatrix = glm::rotate(gridMatrix, glm::radians(90.0f), glm::vec3(1, 0, 0));
 	gridMatrix = glm::translate(gridMatrix, glm::vec3(-gridWidth / 2.0f, -gridHeight / 2.0f, 0.0f));
@@ -495,10 +374,13 @@ int main(int argc, char* argv[])
 	auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(stop - start);
 	std::cout << "Initial grid(s); generation time: " << duration.count() << std::endl;												// End clock, create inition chunks
 
+
+
 	
 	// Start render-loop
 	while(!stopRendering)
 	{
+
 		//update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
 		previousTime = currentTime;
@@ -513,39 +395,31 @@ int main(int argc, char* argv[])
 
 		// render to window
 		display();
-	
-
-		mat4 projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 5.0f, 200000.0f);
-		mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
-
-
-		// New uniforms
-		vec4 viewSpaceLightPosition = viewMatrix * vec4(lightPosition, 1);
-
-		glUseProgram(shaderProgram);
-		labhelper::setUniformSlow(shaderProgram, "material_color", vec3(0.0f, 0.7f, 0.0f));
-		labhelper::setUniformSlow(shaderProgram, "point_light_color", vec3(1.0f, 1.0f, 1.0f));
-		labhelper::setUniformSlow(shaderProgram, "point_light_intensity_multiplier",
-			point_light_intensity_multiplier);
-		labhelper::setUniformSlow(shaderProgram, "environment_multiplier", 1.0f);
-		labhelper::setUniformSlow(shaderProgram, "viewSpaceLightPosition", vec3(viewSpaceLightPosition));
-
-		labhelper::setUniformSlow(shaderProgram, "viewPos", cameraPosition);
-	
 
 		
-		labhelper::setUniformSlow(shaderProgram, "modelViewProjectionMatrix",
-			projMatrix * viewMatrix * gridMatrix);
-		labhelper::setUniformSlow(shaderProgram, "modelViewMatrix", viewMatrix * gridMatrix);
-		labhelper::setUniformSlow(shaderProgram, "viewInverse", inverse(viewMatrix));
-		labhelper::setUniformSlow(shaderProgram, "normalMatrix",
-			inverse(transpose(viewMatrix * gridMatrix)));
-		labhelper::setUniformSlow(shaderProgram, "currentTime", currentTime);
+		lightDirection = rotateSun(sunangle);
+		glUseProgram(testShader); 
+		labhelper::setUniformSlow(testShader, "viewPos", cameraPosition);
+		labhelper::setUniformSlow(testShader, "lightDirection", lightDirection);
+		labhelper::setUniformSlow(testShader, "lightDiffuse", vec3(1.0f));
+		labhelper::setUniformSlow(testShader, "lightAmbient", vec3(0.1f));
+		labhelper::setUniformSlow(testShader, "lightSpecular", vec3(1.0f));
+		labhelper::setUniformSlow(testShader, "materialShininess", (1.0f));
+		labhelper::setUniformSlow(testShader, "materialColor", vec3(1.0f, 0.0f, 0.0f));
+		
+
+		mat4 projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 0.1f, 2000000.0f);
+		mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
+		labhelper::setUniformSlow(testShader, "projection", projMatrix);
+		labhelper::setUniformSlow(testShader, "view", viewMatrix);
+		labhelper::setUniformSlow(testShader, "model", gridMatrix);
+
 
 		// Draw initial grids to the screen
+		
 		initialChunk1.DrawGridChunk();
-		initialChunk2.DrawGridChunk();
-
+		//initialChunk2.DrawGridChunk();
+		debugDrawLight(viewMatrix, projMatrix, vec3(lightPosition));
 		// Render overlay GUI.
 		gui();
 
@@ -556,8 +430,6 @@ int main(int argc, char* argv[])
 		SDL_GL_SwapWindow(g_window);
 	}
 	// Free Models
-	labhelper::freeModel(fighterModel);
-	labhelper::freeModel(landingpadModel);
 	labhelper::freeModel(sphereModel);
 
 	// Shut down everything. This includes the window and all other subsystems.

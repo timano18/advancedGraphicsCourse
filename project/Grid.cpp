@@ -106,10 +106,11 @@ void Grid::generateGrid()
 		for (int j = startX; j < stopX; j++) {
 
 			// Generate noise
-			float z = perlinNoise(i, j, m_width, m_height, m_perlinScale) + voronoiNoise(i, j, m_width, m_height, posArr, m_voronoiScale);
-
+			//float z = perlinNoise(i, j, m_width, m_height, m_perlinScale) + voronoiNoise(i, j, m_width, m_height, posArr, m_voronoiScale);
+			float z = perlinNoise(i, j, m_width, m_height, m_perlinScale);
 			Vertex vertex;
 			vertex.position = glm::vec3(j * m_cellSize, i * m_cellSize, z);
+			vertex.normal = glm::vec3(0.0f, 0.0f, 0.0f);  // Ensure the normal is initialized to zero
 			vertices.push_back(vertex);
 
 		}
@@ -143,10 +144,10 @@ void Grid::generateGrid()
 				vertices[topRight].position - vertices[topLeft].position));
 
 			// Add normals to the vertices
-			vertices[topLeft].normal += normal1 + normal2;
-			vertices[bottomLeft].normal += normal1;
-			vertices[bottomRight].normal += normal1 + normal2;
-			vertices[topRight].normal += normal2;
+			vertices[topLeft].normal += glm::normalize(normal1 + normal2);
+			vertices[bottomLeft].normal += glm::normalize(normal1);
+			vertices[bottomRight].normal += glm::normalize(normal1 + normal2);
+			vertices[topRight].normal += glm::normalize(normal2);
 		}
 	}
 
