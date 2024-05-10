@@ -260,11 +260,11 @@ bool handleEvents(void)
 	{
 		cameraPosition += cameraSpeed * deltaTime * cameraRight;
 	}
-	if(state[SDL_SCANCODE_Q])
+	if(state[SDL_SCANCODE_Q]) // SDL_SCANCODE_LCTRL
 	{
 		cameraPosition -= cameraSpeed * deltaTime * worldUp;
 	}
-	if(state[SDL_SCANCODE_E])
+	if(state[SDL_SCANCODE_E]) // SDL_SCANCODE_SPACE
 	{
 		cameraPosition += cameraSpeed * deltaTime * worldUp;
 	}
@@ -346,24 +346,38 @@ int main(int argc, char* argv[])
 	int xStartPos;
 	int yStartPos;
 	float cellSize = 10.0;
-	float perlinScale = 750.0;
-	float voronoiScale = 100.0;
+	float perlinScale = 1500.0;
+	float voronoiScale = 200.0;
 
 	// Generate initial chunk parameters
-	int xChunkStart = 0;
-	int yChunkStart = 0;
-	int xChunkEnd = 1;
-	int yChunkEnd = 3;
+	// int xChunkStart = 0;
+	// int yChunkStart = 0;
+	// int xChunkEnd = 1;
+	// int yChunkEnd = 3;
 
-	int LoD = 8; // Tillfällig
+	float LoD = 1.0; // Tillfällig
 
-	GridChunk initialChunk1;
+	//GridChunk initialChunk1;
 	GridChunk initialChunk2;
+	//GridChunk initialChunk3;
 																																				// *** KOMMENTARER: Lägg till "levels of detail". Går ej att stoppa in negativa koordinater just nu. Kanske borde byta från (x1,y1,x2,y2) till (x1,x2,y1,y2)? Fixa "GridChunk::generateChunkGrids". Gör klart "GridChunk::gridChunkCenter()"
 	// createNewStandardChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd);																	// Standard (värden i grid.cpp)
-	initialChunk1.createNewStandardChunk(0, 0, 1, 1);
+	//initialChunk1.createNewStandardChunk(0, 0, 1, 1, -500);
 	// createNewChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);				// Välj variabler
-	//initialChunk2.createNewChunk(0, 1, 3, 2, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, perlinScale, voronoiScale);						// Artificiellt lägre LoD. Måste ändra på filter-variablerna också för att det ska bli korrekt?
+	initialChunk2.createNewChunk(0, 0, 4, 4, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, 900, perlinScale, voronoiScale);				// Artificiellt lägre LoD. Måste ändra på filter-variablerna också för att det ska bli korrekt?
+	//initialChunk3.createNewChunk(1, 2, 4, 3, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, 0, perlinScale, voronoiScale);
+
+	//for (int i = -240; i < 240; i++) {
+	//	std::cout << "Perlin: " << perlinNoiseGen((float)i * 0.33, (float)i * 0.33) << '\n';
+	//}
+
+
+	// Ocean
+	//initialChunk3.createNewChunk(-2, -2, 2, 2, gridWidth / 24, gridHeight / 24, cellSize * 24, 49.99, 0, 0);
+
+	//initialChunk1.createNewStandardChunk(0, 0, 1, 1, 500);
+	//initialChunk2.createNewStandardChunk(0, 1, 1, 2, 500);
+	//initialChunk3.createNewStandardChunk(0, 2, 1, 3, 500);
 
 	gridMatrix = mat4(1.0f);
 
@@ -372,10 +386,10 @@ int main(int argc, char* argv[])
 
 	auto stop = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(stop - start);
-	std::cout << "Initial grid(s); generation time: " << duration.count() << std::endl;												// End clock, create inition chunks
+	std::cout << "Initial grid(s); generation time: " << duration.count() << std::endl;															// End clock, create inition chunks
 
-
-
+	//glm::vec2 test = {1994,5558};
+	//perturbedNoice(test);
 	
 	// Start render-loop
 	while(!stopRendering)
@@ -405,7 +419,13 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(testShader, "lightAmbient", vec3(0.1f));
 		labhelper::setUniformSlow(testShader, "lightSpecular", vec3(1.0f));
 		labhelper::setUniformSlow(testShader, "materialShininess", (1.0f));
-		labhelper::setUniformSlow(testShader, "materialColor", vec3(1.0f, 0.0f, 0.0f));
+
+		// Different colours for different height levels
+		labhelper::setUniformSlow(testShader, "materialColor1", vec3(0.0f, 1.0f, 0.0f)); // Gräs
+		labhelper::setUniformSlow(testShader, "materialColor2", vec3(0.0f, 0.0f, 1.0f)); // Vatten
+		labhelper::setUniformSlow(testShader, "materialColor3", vec3(0.5f, 0.5f, 0.5f)); // Lutning
+		labhelper::setUniformSlow(testShader, "materialColor4", vec3(0.7f, 0.7f, 0.5f)); // Sand
+		labhelper::setUniformSlow(testShader, "materialColor5", vec3(1.0f, 1.0f, 1.0f)); // Snö
 		
 
 		mat4 projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 0.1f, 2000000.0f);
@@ -417,8 +437,10 @@ int main(int argc, char* argv[])
 
 		// Draw initial grids to the screen
 		
-		initialChunk1.DrawGridChunk();
-		//initialChunk2.DrawGridChunk();
+		//initialChunk1.DrawGridChunk();
+		initialChunk2.DrawGridChunk();
+		//initialChunk3.DrawGridChunk();
+
 		debugDrawLight(viewMatrix, projMatrix, vec3(lightPosition));
 		// Render overlay GUI.
 		gui();

@@ -19,9 +19,13 @@ unsigned int s_width = 240;
 unsigned int s_height = 240;
 int s_xStartPos = 0;
 int s_yStartPos = 0;
+float s_zStartPos = 0;
 float s_cellSize = 10.0f;
-float s_perlinScale = 750.0;
-float s_voronoiScale = 100.0;
+float s_perlinScale = 1500.0; //750.0;
+float s_voronoiScale = 200.0;
+
+// Save positions for voronoi
+std::vector<glm::vec2> posArrGlob;
 
 // One grid
 Grid::Grid()
@@ -33,15 +37,17 @@ Grid::Grid()
 	m_cellSize = s_cellSize;
 	m_perlinScale = s_perlinScale;
 	m_voronoiScale = s_voronoiScale;
+	m_zStartPos = s_zStartPos;
 }
 
 // Parameterized constructor implementation
-Grid::Grid(unsigned int width, unsigned int height, int xStartPos, int yStartPos, float cellSize, float perlinScale, float voronoiScale)
+Grid::Grid(unsigned int width, unsigned int height, int xStartPos, int yStartPos, float zStartPos, float cellSize, float perlinScale, float voronoiScale)
 {
 	m_width = width;
 	m_height = height;
 	m_xStartPos = xStartPos; // - 1 for correct starting placements
 	m_yStartPos = yStartPos; // - 1 for correct starting placements
+	m_zStartPos = zStartPos;
 	m_cellSize = cellSize;
 	m_perlinScale = perlinScale;
 	m_voronoiScale = voronoiScale;
@@ -55,16 +61,18 @@ GridChunk::GridChunk()
 	m_yStartPos_Chunk = 0;
 	m_xEndPos_Chunk = s_width_Chunk;
 	m_yEndPos_Chunk = s_height_Chunk;
+	m_zStartPos = 0;
 	m_grids;
 }
 
 // Parameterized constructor implementation
-GridChunk::GridChunk(int xStartPos_Chunk, int yStartPos_Chunk, int xEndPos_Chunk, int yEndPos_Chunk)
+GridChunk::GridChunk(int xStartPos_Chunk, int yStartPos_Chunk, int xEndPos_Chunk, int yEndPos_Chunk, float height)
 {
 	m_xStartPos_Chunk = xStartPos_Chunk; 
 	m_yStartPos_Chunk = yStartPos_Chunk;
 	m_xEndPos_Chunk = xEndPos_Chunk;
 	m_yEndPos_Chunk = yEndPos_Chunk;
+	m_zStartPos = height;
 	m_grids;
 }
 
@@ -74,40 +82,77 @@ GridChunk::GridChunk(int xStartPos_Chunk, int yStartPos_Chunk, int xEndPos_Chunk
 void Grid::generateGrid()
 {
 
-	// Generate voronoiPoints before loop
-	float randPts = 20;
-
-	float randValue;
-	std::vector<glm::vec2> posArr;
-	glm::vec2 pos;
-
-	for (int i = 0; i < m_width; ++i) {
-		for (int j = 0; j < m_height; ++j) {
-
-			randValue = abs(randomGradient(i + 1, j + 1).x); // +1 för att ta bort alltid prick (0,0)
-			if (randValue < (randPts / (m_width * m_height))) {
-	
-				pos.x = i;
-				pos.y = j;
-	
-				posArr.push_back(pos); // Save coords. in array
-			}
-		}
-	}
-
 	// Positions for the loops (start/stop coords.)
 	int startX = m_xStartPos;
 	int startY = m_yStartPos;
-	int stopX  = m_xStartPos + m_width;
-	int stopY  = m_yStartPos + m_height;
+	int stopX = m_xStartPos + m_width;
+	int stopY = m_yStartPos + m_height;
+
+	// Generate voronoiPoints before loop
+	float borderValue = 0.6;
+	posArrGlob = {};
+
+	voronoiPoints(startX - m_width * borderValue, startY - m_height * borderValue, stopX + m_width * borderValue, stopY + m_height * borderValue);
+
+
+	/*
+	int startIndexX = (m_xStartPos-1) / (m_width);
+	int startIndexy = (m_yStartPos-1) / (m_height);
+	for (int i = startIndexX - 1; i <= startIndexX + 1; i++) {
+		for (int j = startIndexy - 1; j <= startIndexy + 1; j++) {
+			std::cout << "i: " << i << " & j: " << j << '\n';
+			voronoiPoints(i * m_width, j * m_height);
+		}
+	}
+	*/
+
+
+	//
+	//for (int i = -1; i <= 1; i++) {
+	//	for (int j = -1; j <= 1; j++) {
+	//		voronoiPoints(i * m_width, j * m_height);
+	//	}
+	//}
+
+	/*
+	voronoiPoints(240, -240);
+		voronoiPoints(240, 0);
+	voronoiPoints(240, 240);
+		voronoiPoints(0, -240);
+		voronoiPoints(0, 0);
+		voronoiPoints(0, 240);
+	voronoiPoints(-240, -240);
+		voronoiPoints(-240, 0);
+	voronoiPoints(-240, 240);
+	*/
+
+	/*
+	voronoiPoints(240, -240);
+	voronoiPoints(240, 0);
+	voronoiPoints(240, 240);
+	voronoiPoints(0, -240);
+	voronoiPoints(0, 0);
+	voronoiPoints(0, 240);
+	voronoiPoints(-240, -240);
+	voronoiPoints(-240, 0);
+	voronoiPoints(-240, 240);
+	*/
+
+	//std::cout << posArrGlob.size() << '\n' << '\n';
 
 	// Generate vertices
 	for (int i = startY; i < stopY; i++) {
 		for (int j = startX; j < stopX; j++) {
 
+			// Perturbation
+			glm::vec2 point = { i, j };
+			point = perturbedNoice(point);
+
 			// Generate noise
-			//float z = perlinNoise(i, j, m_width, m_height, m_perlinScale) + voronoiNoise(i, j, m_width, m_height, posArr, m_voronoiScale);
-			float z = perlinNoise(i, j, m_width, m_height, m_perlinScale);
+			//float z = perlinNoise(point.x, point.y, m_width, m_height, m_perlinScale);
+			float z = -m_zStartPos + perlinNoise(point.x, point.y, m_width, m_height, m_perlinScale) + voronoiNoise(point.x, point.y, m_width, m_height, posArrGlob, m_voronoiScale);
+			//std::cout << "Perlin in point " << "x: " << point.x << " & y: " << point.y << " is: " << perlinNoise(point.x, point.y, m_width, m_height, m_perlinScale) << '\n';
+			//float z = voronoiNoise(point.x, point.y, m_width, m_height, posArrGlob, m_voronoiScale);
 			Vertex vertex;
 			vertex.position = glm::vec3(j * m_cellSize, i * m_cellSize, z);
 			vertex.normal = glm::vec3(0.0f, 0.0f, 0.0f);  // Ensure the normal is initialized to zero
@@ -179,17 +224,72 @@ void Grid::generateGrid()
 	glBindVertexArray(0);
 }
 
+// *** Points for voronoi ***
+void Grid::voronoiPoints(int startX, int startY, int stopX, int stopY) {
+
+	float randPts = 10;
+	float randValue;
+	glm::vec2 pos;
+
+	for (int i = startY; i < stopY; ++i) {
+		for (int j = startX; j < stopX; ++j) {
+
+			randValue = abs(randomGradient(i, j).x); // +1 för att ta bort alltid prick (0,0)
+			if (randValue < (randPts / (m_width * m_height))) {
+
+				pos.x = i;
+				pos.y = j;
+				//std::cout << "x: " << i << " & y: " << j << '\n';
+
+				posArrGlob.push_back(pos); // Tillfällig
+			}
+		}
+	}
+}
+
+/*
+// *** Points for voronoi ***
+void Grid::voronoiPoints(int startX, int startY) {
+	float randPts = 10;
+
+	float randValue;
+	//std::vector<glm::vec2> posArr;
+	glm::vec2 pos;
+
+	int stopX = startX + m_width;
+	int stopY = startY + m_height;
+
+	for (int i = startY; i < stopY; ++i) {
+		for (int j = startX; j < stopX; ++j) {
+
+			randValue = abs(randomGradient(i+1, j+1).x); // +1 för att ta bort alltid prick (0,0)
+			if (randValue < (randPts / (m_width * m_height))) {
+
+				pos.x = i;
+				pos.y = j;
+				std::cout << "x: " << i << " & y: " << j << '\n';
+
+				//posArr.push_back(pos); // Save coords. in array
+				posArrGlob.push_back(pos); // Tillfällig
+			}
+		}
+	}
+}
+*/
+
+
 // *** Generate gridChunk ***
-std::vector<Grid> GridChunk::generateChunkGrids(int xStartPosChunk, int yStartPosChunk, int xEndPosChunk, int yEndPosChunk, unsigned int gridWidth, unsigned int gridHeight, float cellSize, float perlinScale, float voronoiScale) {
+std::vector<Grid> GridChunk::generateChunkGrids(int xStartPosChunk, int yStartPosChunk, int xEndPosChunk, int yEndPosChunk, unsigned int gridWidth, unsigned int gridHeight, float cellSize, float zStartPos, float perlinScale, float voronoiScale) {
 
 	std::vector<Grid> grids;
 
 	// Måste göra så att t.ex. pos (x: 1, y: -5) fungerar, d.v.s. negativa koordinater
 	// "-1" fungerar bara om två närligande grids har samma "upplösning", så den hoppar med en "cellSize". Får fixa
-
+	
 	for (int i = xStartPosChunk; i < xEndPosChunk; i++) {
 		for (int j = yStartPosChunk; j < yEndPosChunk; j++) {
-			Grid grid(gridWidth, gridHeight, (gridWidth - 1) * i, (gridHeight - 1) * j, cellSize, perlinScale, voronoiScale);
+			//std::cout << '\n' << "Grid x: " << i << ", y: " << j << '\n' << "From x: " << (gridWidth - 1) * i << " to " << (gridWidth - 1) * i + gridWidth << '\n' << "From y: " << (gridHeight - 1) * j << " to " << (gridHeight - 1) * j + gridHeight << '\n';
+			Grid grid(gridWidth, gridHeight, (gridWidth - 1) * i, (gridHeight - 1) * j, zStartPos, cellSize, perlinScale, voronoiScale);
 			grid.generateGrid();
 			grids.push_back(grid);
 		}
@@ -220,20 +320,20 @@ void Grid::setGridHeight(unsigned int height)
 
 // *** Functions chunk ***
 
-void GridChunk::createNewStandardChunk(int startX, int startY, int endX, int endY) {
+void GridChunk::createNewStandardChunk(int startX, int startY, int endX, int endY, float startZ) {
 	m_xStartPos_Chunk = startX;
 	m_yStartPos_Chunk = startY;
 	m_xEndPos_Chunk = endX;
 	m_yEndPos_Chunk = endY;
-	m_grids = generateChunkGrids(startX, startY, endX, endY, s_width, s_height, s_cellSize, s_perlinScale, s_voronoiScale);
+	m_grids = generateChunkGrids(startX, startY, endX, endY, s_width, s_height, s_cellSize, startZ, s_perlinScale, s_voronoiScale);
 };
 
-void GridChunk::createNewChunk(int startX, int startY, int endX, int endY, unsigned int gridWidth, unsigned int gridHeight, float cellSize, float perlinScale, float voronoiScale) {
+void GridChunk::createNewChunk(int startX, int startY, int endX, int endY, unsigned int gridWidth, unsigned int gridHeight, float cellSize, float startZ, float perlinScale, float voronoiScale) {
 	m_xStartPos_Chunk = startX;
 	m_yStartPos_Chunk = startY;
 	m_xEndPos_Chunk = endX;
 	m_yEndPos_Chunk = endY;
-	m_grids = generateChunkGrids(startX, startY, endX, endY, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);
+	m_grids = generateChunkGrids(startX, startY, endX, endY, gridWidth, gridHeight, cellSize, startZ, perlinScale, voronoiScale);
 };
 
 // GridChunk draw
