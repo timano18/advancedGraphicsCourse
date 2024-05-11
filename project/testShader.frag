@@ -10,7 +10,7 @@ in vec3 Normal;     // Normal vector of the fragment
 in vec2 TexCoords;  // Texture coordinates
 in vec3 NormalColor;
 
-
+in vec3 vertColour;
 
 uniform vec3 viewPos;
 
@@ -20,7 +20,11 @@ uniform vec3 lightDiffuse;
 uniform vec3 lightSpecular;
 
 uniform float materialShininess;
-uniform vec3 materialColor;
+uniform vec3 materialColor1;
+uniform vec3 materialColor2;
+uniform vec3 materialColor3;
+uniform vec3 materialColor4;
+uniform vec3 materialColor5;
 
 
 
@@ -33,6 +37,38 @@ vec3 CalcDirLight(vec3 normal, vec3 viewDir)
     vec3 reflectDir = reflect(-lightDir, normal);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), materialShininess);
     // combine results
+    vec3 materialColor;
+
+    /*
+    // Heights
+    // Snow
+    if (FragPos.y > 300) {
+        materialColor = materialColor5;
+    } else 
+    // Grass
+    if (FragPos.y > 50) {
+        materialColor = materialColor1;
+    } else
+    // Sand
+    if (FragPos.y > 0) {SS
+        materialColor = materialColor4;
+    }
+
+    // Slope
+    if (abs(Normal.x) > 0.35) {
+        materialColor = materialColor3;
+    }
+    */
+
+    // Från vertex shader
+    materialColor = vertColour;
+        
+    // Heights (resten i vertex shader, interpolerat istället för rakt)
+    // Ocean (over slope)
+    if (FragPos.y <= 50) {
+        materialColor = materialColor2;
+    }
+
     vec3 ambient = lightAmbient * materialColor;
     vec3 diffuse = lightDiffuse * diff * materialColor;
     vec3 specular = lightSpecular * spec * materialColor;

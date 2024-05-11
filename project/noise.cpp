@@ -2,6 +2,7 @@
 #include <cmath>
 #include <vector>
 #include <list>
+#include <iostream>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
@@ -40,8 +41,8 @@ float dotGridGradient(int ix, int iy, float x, float y)
 	glm::vec2 gradient = randomGradient(ix, iy);
 
 	// Find distance
-	float dx = x - (float)ix;
-	float dy = y - (float)iy;
+	float dx = (x - (float)ix);
+	float dy = (y - (float)iy);
 
 	return (dx * gradient.x + dy * gradient.y);
 }
@@ -52,7 +53,7 @@ float interpolate(float a0, float a1, float weight)
 	return (a1 - a0) * (3.0 - weight * 2.0) * weight * weight + a0;
 }
 
-// Calculated value to divide hight by st avoid values of > 1
+// Calculated value to divide height by st avoid values of > 1
 float divHeight(int levels) {
 	float divValue = 1;
 	for (int i = 1; i < levels; i++) {
@@ -109,8 +110,8 @@ float perlinNoiseGen(float x, float y) {
 	int y1 = y0 + 1;
 
 	// Interpolation weight (from size of square)
-	float wx = x - (float)x0;
-	float wy = y - (float)y0;
+	float wx = abs(x - (float)x0);
+	float wy = abs(y - (float)y0);
 
 	// Generate + interpolate top corners
 	float n0 = dotGridGradient(x0, y0, x, y);
@@ -133,16 +134,17 @@ float perlinNoise(float x, float y, int sizeX, int sizeY, float noiseScale) {
 
 	int levels = 3;
 
-	x = (float)x / (sizeX - 1);
-	y = (float)y / (sizeY - 1);
+	x = abs(x / (float)(sizeX - 1));
+	y = abs(y / (float)(sizeY - 1));
 
 	float normalizedP = 0.0;
 
 	for (int i = levels; i > 0; i--) {
 		normalizedP = normalizedP + (((perlinNoiseGen(x * pow(2, i), y * pow(2, i)) + 1.0) / 2.0) / i);
 	}
-
-	return (normalizedP / divHeight(levels)) * noiseScale;
+	//if (normalizedP > 0.75 || normalizedP < -0.25) std::cout << "Perlin value: " << normalizedP << '\n';
+	//if (normalizedP / divHeight(levels) * 2 > 0.9 || normalizedP / divHeight(levels) * 2 < -0.1) std::cout << "Perlin value: " << normalizedP / divHeight(levels) << '\n';
+	return (normalizedP / divHeight(levels)) * noiseScale; // Behövs divHeight??
 }
 
 //***** PERLIN END *****
@@ -152,7 +154,7 @@ float perlinNoise(float x, float y, int sizeX, int sizeY, float noiseScale) {
 
 float voronoiNoise(float x, float y, int sizeX, int sizeY, std::vector<glm::vec2> posArr, float noiseScale) {
 
-	float reduceAmount = 5000;
+	float reduceAmount = 14000;
 	float c1 = -1.0;
 	float c2 = 1.0;
 
@@ -161,16 +163,39 @@ float voronoiNoise(float x, float y, int sizeX, int sizeY, std::vector<glm::vec2
 	int nPts = posArr.size();
 
 	if (nPts <= 2) {
-		voronoiValue = 1.0; // To few points, return nothing
+		voronoiValue = 0.0; // To few points, return nothing
+		std::cout << "nPts too few" << '\n' << '\n';
 	}
 	else {
 		voronoiValue = c1 * findClosest(posArr, x, y, true) + c2 * findClosest(posArr, x, y, false);
 	}
 
-	voronoiValue = voronoiValue / reduceAmount; // Set to 0 - 1
-	if (voronoiValue > 1.0) {
-		voronoiValue = 1.0;
-	}
+	voronoiValue = voronoiValue / reduceAmount; // Set to 0 - 1 (very close to 1, depending on "reduceAmount")
+	
+	//if (voronoiValue > 1.0) {std::cout << "Voironoi value: " << voronoiValue << '\n';
+	// voronoiValue = 1.0;
+	
 	return voronoiValue * noiseScale;
 }
 //***** VORONOI END *****
+
+
+//***** PERTURBATION START *****
+
+glm::vec2 perturbedNoice(glm::vec2 point) {
+	int x = point.x;
+	int y = point.y;
+
+	//std::cout << "x: " << x << '\n';
+	//std::cout << "y: " << y << '\n';
+
+	x = x + 1.0 * randomGradient(x, y).x;
+	y = y + 1.0 * randomGradient(x, y).y;
+
+	//std::cout << "x: " << x << '\n';
+	//std::cout << "y: " << y << '\n';
+
+	return {x, y};
+}
+
+//***** PERTURBATION END *****

@@ -270,11 +270,11 @@ bool handleEvents(void)
 	{
 		cameraPosition += cameraSpeed * deltaTime * cameraRight;
 	}
-	if(state[SDL_SCANCODE_Q])
+	if(state[SDL_SCANCODE_Q]) // SDL_SCANCODE_LCTRL
 	{
 		cameraPosition -= cameraSpeed * deltaTime * worldUp;
 	}
-	if(state[SDL_SCANCODE_E])
+	if(state[SDL_SCANCODE_E]) // SDL_SCANCODE_SPACE
 	{
 		cameraPosition += cameraSpeed * deltaTime * worldUp;
 	}
@@ -419,18 +419,21 @@ int main(int argc, char* argv[])
 	int xStartPos;
 	int yStartPos;
 	float cellSize = 10.0;
-	float perlinScale = 750.0;
-	float voronoiScale = 100.0;
+	float perlinScale = 1500.0;
+	float voronoiScale = 200.0;
 
-	// Generate initial chunk parameters
-	int xChunkStart = 0;
-	int yChunkStart = 0;
-	int xChunkEnd = 1;
-	int yChunkEnd = 1;
 
-	int LoD = 8; // Tillfällig
+
+	float LoD = 1.0; // TillfÃ¤llig
 
 	//GridChunk initialChunk1;
+
+	GridChunk initialChunk2;
+	//GridChunk initialChunk3;
+																																				// *** KOMMENTARER: LÃ¤gg till "levels of detail". GÃ¥r ej att stoppa in negativa koordinater just nu. Kanske borde byta frÃ¥n (x1,y1,x2,y2) till (x1,x2,y1,y2)? Fixa "GridChunk::generateChunkGrids". GÃ¶r klart "GridChunk::gridChunkCenter()"
+	// createNewStandardChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd);																	// Standard (vÃ¤rden i grid.cpp)
+	//initialChunk1.createNewStandardChunk(0, 0, 1, 1, -500);
+
 	//GridChunk initialChunk2;
 
 	// query limitations
@@ -442,11 +445,8 @@ int main(int argc, char* argv[])
 	ComputeShader computeShader("../project/simpleComputeShader.glsl");
 
 
-
-
-
-	Grid grid;
-	grid.generateGrid();
+	//Grid grid;
+	//grid.generateGrid();
 
 	glBindBuffer(GL_ARRAY_BUFFER, grid.getVBO());
 	Vertex* mappedVertices = (Vertex*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
@@ -458,11 +458,22 @@ int main(int argc, char* argv[])
 	}
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 	
-																																	// *** KOMMENTARER: Lägg till "levels of detail". Går ej att stoppa in negativa koordinater just nu. Kanske borde byta från (x1,y1,x2,y2) till (x1,x2,y1,y2)? Fixa "GridChunk::generateChunkGrids". Gör klart "GridChunk::gridChunkCenter()"
-	// createNewStandardChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd);																	// Standard (värden i grid.cpp)
-	//initialChunk1.createNewStandardChunk(0, 0, 1, 1);
-	// createNewChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);				// Välj variabler
-	//initialChunk2.createNewChunk(0, 1, 3, 2, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, perlinScale, voronoiScale);						// Artificiellt lägre LoD. Måste ändra på filter-variablerna också för att det ska bli korrekt?
+
+	// createNewChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);				// VÃ¤lj variabler
+	initialChunk2.createNewChunk(0, 0, 4, 4, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, 900, perlinScale, voronoiScale);				// Artificiellt lÃ¤gre LoD. MÃ¥ste Ã¤ndra pÃ¥ filter-variablerna ocksÃ¥ fÃ¶r att det ska bli korrekt?
+	//initialChunk3.createNewChunk(1, 2, 4, 3, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, 0, perlinScale, voronoiScale);
+
+	//for (int i = -240; i < 240; i++) {
+	//	std::cout << "Perlin: " << perlinNoiseGen((float)i * 0.33, (float)i * 0.33) << '\n';
+	//}
+
+
+	// Ocean
+	//initialChunk3.createNewChunk(-2, -2, 2, 2, gridWidth / 24, gridHeight / 24, cellSize * 24, 49.99, 0, 0);
+
+	//initialChunk1.createNewStandardChunk(0, 0, 1, 1, 500);
+	//initialChunk2.createNewStandardChunk(0, 1, 1, 2, 500);
+	//initialChunk3.createNewStandardChunk(0, 2, 1, 3, 500);
 
 	gridMatrix = mat4(1.0f);
 
@@ -476,6 +487,7 @@ int main(int argc, char* argv[])
 
 	auto stop = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(stop - start);
+
 	std::cout << "Initial grid(s); generation time: " << duration.count() << std::endl;												// End clock, create inition chunks
 
 	
@@ -491,6 +503,9 @@ int main(int argc, char* argv[])
 	}
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 
+
+	//glm::vec2 test = {1994,5558};
+	//perturbedNoice(test);
 	
 	// Start render-loop
 	while(!stopRendering)
@@ -520,7 +535,13 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(testShader, "lightAmbient", vec3(0.1f));
 		labhelper::setUniformSlow(testShader, "lightSpecular", vec3(1.0f));
 		labhelper::setUniformSlow(testShader, "materialShininess", (1.0f));
-		labhelper::setUniformSlow(testShader, "materialColor", vec3(1.0f, 0.0f, 0.0f));
+
+		// Different colours for different height levels
+		labhelper::setUniformSlow(testShader, "materialColor1", vec3(0.0f, 1.0f, 0.0f)); // GrÃ¤s
+		labhelper::setUniformSlow(testShader, "materialColor2", vec3(0.0f, 0.0f, 1.0f)); // Vatten
+		labhelper::setUniformSlow(testShader, "materialColor3", vec3(0.5f, 0.5f, 0.5f)); // Lutning
+		labhelper::setUniformSlow(testShader, "materialColor4", vec3(0.7f, 0.7f, 0.5f)); // Sand
+		labhelper::setUniformSlow(testShader, "materialColor5", vec3(1.0f, 1.0f, 1.0f)); // SnÃ¶
 		
 
 		mat4 projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 0.1f, 2000000.0f);
@@ -528,7 +549,10 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(testShader, "projection", projMatrix);
 		labhelper::setUniformSlow(testShader, "view", viewMatrix);
 		labhelper::setUniformSlow(testShader, "model", gridMatrix);
-		grid.DrawGrid();
+    
+		// Draw initial grids to the screen
+		initialChunk2.DrawGridChunk();
+		//grid.DrawGrid();
 	
 		computeShader.use();
 		computeShader.setInt("size", gridSize);
@@ -540,32 +564,11 @@ int main(int argc, char* argv[])
 
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
-		// render image to quad
-		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		//glUseProgram(screenQuad);
-		//renderQuad();
 
 
-		// Draw initial grids to the screen
-		
-		//initialChunk1.DrawGridChunk();
-		//initialChunk2.DrawGridChunk();
-		//glUseProgram(normalShader);
-		//GLint modelLocNormal = glGetUniformLocation(normalShader, "model");
-		//GLint viewLocNormal = glGetUniformLocation(normalShader, "view");
-		//GLint projectionLocNormal = glGetUniformLocation(normalShader, "projection");
-		//GLint normalLengthLoc = glGetUniformLocation(normalShader, "normalLength");
-		
-		/*
-		if (true) { // Assume 'showNormals' is controlled by an input event
-			glUseProgram(normalShader);
-			glUniformMatrix4fv(viewLocNormal, 1, GL_FALSE, &viewMatrix[0].x);
-			glUniformMatrix4fv(projectionLocNormal, 1, GL_FALSE, &projMatrix[0].x);
-			glUniform1f(normalLengthLoc, 0.2f); // Set the length of the normal lines
-			// Reuse the model matrix from terrain rendering if normals are aligned with terrain vertices
-			grid.DrawGrid(); // User-defined function to draw normals
-		}
-		*/
+
+
+
 
 
 		// Render overlay GUI.
