@@ -1,3 +1,5 @@
+#pragma once
+
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 
@@ -18,5 +20,3 @@ float perlinNoiseGen(float x, float y);
 
 
 float voronoiNoise(float x, float y, int sizeX, int sizeY, std::vector<glm::vec2> posArr, float noiseScale);
-
-glm::vec2 perturbedNoice(glm::vec2 point);
