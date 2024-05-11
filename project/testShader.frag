@@ -1,4 +1,4 @@
-#version 420
+#version 420 
 
 // required by GLSL spec Sect 4.5.3 (though nvidia does not, amd does)
 precision highp float;
@@ -8,6 +8,7 @@ out vec4 FragColor;
 in vec3 FragPos;    // Position of the fragment
 in vec3 Normal;     // Normal vector of the fragment
 in vec2 TexCoords;  // Texture coordinates
+in vec3 NormalColor;
 
 
 
@@ -21,6 +22,8 @@ uniform vec3 lightSpecular;
 uniform float materialShininess;
 uniform vec3 materialColor;
 
+
+
 vec3 CalcDirLight(vec3 normal, vec3 viewDir)
 {
     vec3 lightDir = normalize(lightDirection);
@@ -33,16 +36,41 @@ vec3 CalcDirLight(vec3 normal, vec3 viewDir)
     vec3 ambient = lightAmbient * materialColor;
     vec3 diffuse = lightDiffuse * diff * materialColor;
     vec3 specular = lightSpecular * spec * materialColor;
- //   return vec3(specular);
-    return (ambient + diffuse);
+    return (vec3(diffuse+ambient+specular));
 }
 
 void main()
 {    
+    /*
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(viewPos - FragPos);
     vec3 result = CalcDirLight(norm, viewDir);
 
-    FragColor = vec4(vec3(result), 1.0f); // combining the two lighting components
+    FragColor = vec4(vec3(result), 1.0f); 
+    */
+
+        // ambient
+    float ambientStrength = 0.1;
+    vec3 ambient = ambientStrength * lightDiffuse;
+  	
+    // diffuse 
+    vec3 norm = normalize(Normal);
+    vec3 lightDir = -normalize(lightDirection);
+    float diff = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse = diff * lightDiffuse;
+    
+    // specular
+    float specularStrength = 0.5;
+    vec3 viewDir = normalize(viewPos - FragPos);
+    vec3 reflectDir = reflect(-lightDir, norm);  
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    vec3 specular = specularStrength * spec * lightDiffuse;  
+        
+    vec3 result = (ambient + diffuse + specular) * materialColor;
+    //FragColor = vec4(vec3(result), 1.0);
+    FragColor = vec4(vec3(result), 1.0);
+
 }
+
+
 

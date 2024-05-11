@@ -10,6 +10,7 @@ public:
 	void DrawGrid();
 	void setGridWidth(unsigned int gridWidth);
 	void setGridHeight(unsigned int gridHeight);
+	GLuint getVBO();
 
 private: 
 	struct Vertex {

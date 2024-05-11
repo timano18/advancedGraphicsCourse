@@ -15,10 +15,11 @@ unsigned int s_width_Chunk = 3;
 unsigned int s_height_Chunk = 3;
 
 // For grid
+int divider = 1;
 unsigned int s_width = 240;
 unsigned int s_height = 240;
-int s_xStartPos = 0;
-int s_yStartPos = 0;
+int s_xStartPos = -100;
+int s_yStartPos = -100;
 float s_cellSize = 10.0f;
 float s_perlinScale = 750.0;
 float s_voronoiScale = 100.0;
@@ -68,7 +69,10 @@ GridChunk::GridChunk(int xStartPos_Chunk, int yStartPos_Chunk, int xEndPos_Chunk
 	m_grids;
 }
 
-
+GLuint Grid::getVBO()
+{
+	return VBO;
+}
 // *** Generate grid ***
 // generateGrid method implementation
 void Grid::generateGrid()
@@ -107,9 +111,9 @@ void Grid::generateGrid()
 
 			// Generate noise
 			//float z = perlinNoise(i, j, m_width, m_height, m_perlinScale) + voronoiNoise(i, j, m_width, m_height, posArr, m_voronoiScale);
-			float z = perlinNoise(i, j, m_width, m_height, m_perlinScale);
+			float z = perlinNoise(i * m_cellSize, j * m_cellSize, m_width, m_height, m_perlinScale );
 			Vertex vertex;
-			vertex.position = glm::vec3(j * m_cellSize, i * m_cellSize, z);
+			vertex.position = glm::vec3(i * m_cellSize, j * m_cellSize , 0);
 			vertex.normal = glm::vec3(0.0f, 0.0f, 0.0f);  // Ensure the normal is initialized to zero
 			vertices.push_back(vertex);
 
@@ -125,43 +129,85 @@ void Grid::generateGrid()
 			unsigned int bottomRight = bottomLeft + 1;
 
 			// First triangle (top-left, bottom-left, bottom-right)
-			indices.push_back(topLeft);
-			indices.push_back(bottomLeft);
 			indices.push_back(bottomRight);
+			indices.push_back(bottomLeft);
+			indices.push_back(topLeft);
+		
+			
 
 			// Second triangle (top-left, bottom-right, top-right)
-			indices.push_back(topLeft);
-			indices.push_back(bottomRight);
 			indices.push_back(topRight);
+			indices.push_back(bottomRight);
+			indices.push_back(topLeft);
+		
+		
 
+
+			
 			// Calculate normals for the two triangles
-			glm::vec3 normal1 = glm::normalize(glm::cross(
+			glm::vec3 normal1 = (glm::cross(
 				vertices[bottomLeft].position - vertices[topLeft].position,
 				vertices[bottomRight].position - vertices[topLeft].position));
 
-			glm::vec3 normal2 = glm::normalize(glm::cross(
+			glm::vec3 normal2 = (glm::cross(
 				vertices[bottomRight].position - vertices[topLeft].position,
 				vertices[topRight].position - vertices[topLeft].position));
 
 			// Add normals to the vertices
-			vertices[topLeft].normal += glm::normalize(normal1 + normal2);
-			vertices[bottomLeft].normal += glm::normalize(normal1);
-			vertices[bottomRight].normal += glm::normalize(normal1 + normal2);
-			vertices[topRight].normal += glm::normalize(normal2);
+			
+			vertices[topLeft].normal += (normal1 + normal2);
+			vertices[bottomLeft].normal += (normal1);
+			vertices[bottomRight].normal += (normal1 + normal2);
+			vertices[topRight].normal += (normal2);
+			
+	
 		}
 	}
+	/*
+	for (int i = 0; i < vertices.size(); i++) {
+		
+	
+			
+		glm::vec3 off = glm::vec3(1.0, 1.0, 0.0);
+		float hL = perlinNoise(vertices[i].position.x/1.0 - off.x, vertices[i].position.y / 1.0 - off.z, m_width, m_height, m_perlinScale);
+		float hR = perlinNoise(vertices[i].position.x / 1.0 + off.x, vertices[i].position.y / 1.0 + off.z, m_width, m_height, m_perlinScale);
+		float hD = perlinNoise(vertices[i].position.x / 1.0 - off.z, vertices[i].position.y / 1.0 - off.y, m_width, m_height, m_perlinScale);
+		float hU = perlinNoise(vertices[i].position.x / 1.0 + off.z, vertices[i].position.y / 1.0 + off.y, m_width, m_height, m_perlinScale);
 
+		vertices[i].normal.x = hL - hR;
+		vertices[i].normal.y = hD - hU;
+		vertices[i].normal.z = -20.0;
+		//vertices[i].normal = glm::normalize(vertices[i].normal);
+		
+	}
+	*/
+	/*
 	for (int i = 0; i < vertices.size(); i++) {
 		vertices[i].normal = glm::normalize(vertices[i].normal);
 	}
+	*/
+	/*
+	for (int i = 0; i < vertices.size()/ 24; i++) {
+		std::cout << "index: " << i << std::endl;
+		std::cout << "x: " << vertices[i].normal.x << ", ";
+		std::cout << "y: " << vertices[i].normal.y << ", ";
+		std::cout << "z: " << vertices[i].normal.z << std::endl;
+	}
+	*/
+	
+	
+
 
 	// *** Buffers ***
+	std::cout << "size of vertex list: " << vertices.size() << std::endl;
+	std::cout << "size of vertex: " << vertices.data() << std::endl;
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_DYNAMIC_DRAW);
+
 
 	glGenBuffers(1, &EBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
