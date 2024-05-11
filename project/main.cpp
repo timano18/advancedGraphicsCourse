@@ -26,6 +26,8 @@ using namespace glm;
 
 #include "Grid.h"
 #include "noise.h"
+#include "myHelper/shader_c.h"
+#include "myHelper/shader_s.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -49,6 +51,7 @@ GLuint testShader;
 
 
 
+
 ///////////////////////////////////////////////////////////////////////////////
 // Light source
 ///////////////////////////////////////////////////////////////////////////////
@@ -59,7 +62,7 @@ vec3 lightDirection;
 ///////////////////////////////////////////////////////////////////////////////
 // Camera parameters.
 ///////////////////////////////////////////////////////////////////////////////
-vec3 cameraPosition(186.0f, 829.0f, 1080.0f);
+vec3 cameraPosition(-2659.0f, 4870.0f, -3135.0f);
 vec3 cameraDirection = normalize(vec3(0.0f) - cameraPosition);
 
 // Camera speed
@@ -75,6 +78,11 @@ vec3 worldUp(0.0f, 1.0f, 0.0f);
 labhelper::Model* sphereModel = nullptr;
 
 mat4 gridMatrix;
+int gridSize = 3000;
+float noiseScale = 0.01;
+
+
+
 
 void loadShaders(bool is_reload)
 {
@@ -89,7 +97,9 @@ void loadShaders(bool is_reload)
 	{
 		testShader = shader;
 	}
+
 }
+
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -116,7 +126,7 @@ void initialize()
 
 
 	glEnable(GL_DEPTH_TEST); // enable Z-buffering
-	glEnable(GL_CULL_FACE);  // enables backface culling
+	//glEnable(GL_CULL_FACE);  // enables backface culling
 }
 
 void debugDrawLight(const glm::mat4& viewMatrix,
@@ -317,7 +327,8 @@ void gui()
 	ImGui::Text("Camera Pos:  x: %.3f  y: %.3f  z: %.3f", cameraPosition.x, cameraPosition.y, cameraPosition.z);
 	ImGui::SliderFloat("Sun angle", &sunangle, 0.0f, 2.0f);
 	ImGui::Text("Light Direction:  x: %.3f  y: %.3f  z: %.3f", lightDirection.x, lightDirection.y, lightDirection.z);
-
+	ImGui::SliderFloat("NoiseScale", &noiseScale, 0.0f, 1500.0f);
+	ImGui::SliderInt("Grid Size", &gridSize, 10, 10000);
 
 	// ----------------------------------------------------------
 
@@ -327,6 +338,68 @@ void gui()
 
 	labhelper::perf::drawEventsWindow();
 }
+
+void computeShaderSetupQuery()
+{
+	// query limitations
+	// -----------------
+	int max_compute_work_group_count[3];
+	int max_compute_work_group_size[3];
+	int max_compute_work_group_invocations;
+
+	for (int idx = 0; idx < 3; idx++) {
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, idx, &max_compute_work_group_count[idx]);
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, idx, &max_compute_work_group_size[idx]);
+	}
+	glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &max_compute_work_group_invocations);
+
+	std::cout << "OpenGL Limitations: " << std::endl;
+	std::cout << "maximum number of work groups in X dimension " << max_compute_work_group_count[0] << std::endl;
+	std::cout << "maximum number of work groups in Y dimension " << max_compute_work_group_count[1] << std::endl;
+	std::cout << "maximum number of work groups in Z dimension " << max_compute_work_group_count[2] << std::endl;
+
+	std::cout << "maximum size of a work group in X dimension " << max_compute_work_group_size[0] << std::endl;
+	std::cout << "maximum size of a work group in Y dimension " << max_compute_work_group_size[1] << std::endl;
+	std::cout << "maximum size of a work group in Z dimension " << max_compute_work_group_size[2] << std::endl;
+
+	std::cout << "Number of invocations in a single local work group that may be dispatched to a compute shader " << max_compute_work_group_invocations << std::endl;
+}
+
+// renderQuad() renders a 1x1 XY quad in NDC
+// -----------------------------------------
+unsigned int quadVAO = 0;
+unsigned int quadVBO;
+void renderQuad()
+{
+	if (quadVAO == 0)
+	{
+		float quadVertices[] = {
+			// positions        // texture Coords
+			-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+			-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+			 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+			 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+		};
+		// setup plane VAO
+		glGenVertexArrays(1, &quadVAO);
+		glGenBuffers(1, &quadVBO);
+		glBindVertexArray(quadVAO);
+		glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	}
+	glBindVertexArray(quadVAO);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+}
+
+struct Vertex {
+	glm::vec3 position;
+	glm::vec3 normal;
+};
 
 int main(int argc, char* argv[])
 {
@@ -341,30 +414,53 @@ int main(int argc, char* argv[])
 	auto start = std::chrono::high_resolution_clock::now();													
 
 	// Generate initial grid parameters
-	int gridWidth = 240;
-	int gridHeight = 240;
+	int gridWidth = 580;
+	int gridHeight = 580;
 	int xStartPos;
 	int yStartPos;
 	float cellSize = 10.0;
 	float perlinScale = 1500.0;
 	float voronoiScale = 200.0;
 
-	// Generate initial chunk parameters
-	// int xChunkStart = 0;
-	// int yChunkStart = 0;
-	// int xChunkEnd = 1;
-	// int yChunkEnd = 3;
 
-	float LoD = 1.0; // Tillfällig
+
+	float LoD = 1.0; // TillfÃ¤llig
 
 	//GridChunk initialChunk1;
+
 	GridChunk initialChunk2;
 	//GridChunk initialChunk3;
-																																				// *** KOMMENTARER: Lägg till "levels of detail". Går ej att stoppa in negativa koordinater just nu. Kanske borde byta från (x1,y1,x2,y2) till (x1,x2,y1,y2)? Fixa "GridChunk::generateChunkGrids". Gör klart "GridChunk::gridChunkCenter()"
-	// createNewStandardChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd);																	// Standard (värden i grid.cpp)
+																																				// *** KOMMENTARER: LÃ¤gg till "levels of detail". GÃ¥r ej att stoppa in negativa koordinater just nu. Kanske borde byta frÃ¥n (x1,y1,x2,y2) till (x1,x2,y1,y2)? Fixa "GridChunk::generateChunkGrids". GÃ¶r klart "GridChunk::gridChunkCenter()"
+	// createNewStandardChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd);																	// Standard (vÃ¤rden i grid.cpp)
 	//initialChunk1.createNewStandardChunk(0, 0, 1, 1, -500);
-	// createNewChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);				// Välj variabler
-	initialChunk2.createNewChunk(0, 0, 4, 4, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, 900, perlinScale, voronoiScale);				// Artificiellt lägre LoD. Måste ändra på filter-variablerna också för att det ska bli korrekt?
+
+	//GridChunk initialChunk2;
+
+	// query limitations
+	computeShaderSetupQuery();
+	
+
+
+	// Build and compile shaders
+	ComputeShader computeShader("../project/simpleComputeShader.glsl");
+
+
+	//Grid grid;
+	//grid.generateGrid();
+
+	glBindBuffer(GL_ARRAY_BUFFER, grid.getVBO());
+	Vertex* mappedVertices = (Vertex*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
+	for (int i = 0; i < 10; ++i) {
+		printf("Vertex %d: Pos(%f, %f, %f), Norm(%f, %f, %f)\n",
+			i,
+			mappedVertices[i].position.x, mappedVertices[i].position.y, mappedVertices[i].position.z,
+			mappedVertices[i].normal.x, mappedVertices[i].normal.y, mappedVertices[i].normal.z);
+	}
+	glUnmapBuffer(GL_ARRAY_BUFFER);
+	
+
+	// createNewChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);				// VÃ¤lj variabler
+	initialChunk2.createNewChunk(0, 0, 4, 4, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, 900, perlinScale, voronoiScale);				// Artificiellt lÃ¤gre LoD. MÃ¥ste Ã¤ndra pÃ¥ filter-variablerna ocksÃ¥ fÃ¶r att det ska bli korrekt?
 	//initialChunk3.createNewChunk(1, 2, 4, 3, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, 0, perlinScale, voronoiScale);
 
 	//for (int i = -240; i < 240; i++) {
@@ -382,11 +478,31 @@ int main(int argc, char* argv[])
 	gridMatrix = mat4(1.0f);
 
 	gridMatrix = glm::rotate(gridMatrix, glm::radians(90.0f), glm::vec3(1, 0, 0));
-	gridMatrix = glm::translate(gridMatrix, glm::vec3(-gridWidth / 2.0f, -gridHeight / 2.0f, 0.0f));
+	gridMatrix = glm::translate(gridMatrix, glm::vec3(-gridWidth / 2.0f, -gridHeight / 2.0f, -1500.0f));
+	
+	//cameraPosition = glm::vec3(gridMatrix[3]);
+
+	
+
 
 	auto stop = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(stop - start);
-	std::cout << "Initial grid(s); generation time: " << duration.count() << std::endl;															// End clock, create inition chunks
+
+	std::cout << "Initial grid(s); generation time: " << duration.count() << std::endl;												// End clock, create inition chunks
+
+	
+	
+	std::cout << "After compute shader" << std::endl;
+	glBindBuffer(GL_ARRAY_BUFFER, grid.getVBO());
+	mappedVertices = (Vertex*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
+	for (int i = 0; i < 100; ++i) {
+		printf("Vertex %d: Pos(%f, %f, %f), Norm(%f, %f, %f)\n",
+			i,
+			mappedVertices[i].position.x, mappedVertices[i].position.y, mappedVertices[i].position.z,
+			mappedVertices[i].normal.x, mappedVertices[i].normal.y, mappedVertices[i].normal.z);
+	}
+	glUnmapBuffer(GL_ARRAY_BUFFER);
+
 
 	//glm::vec2 test = {1994,5558};
 	//perturbedNoice(test);
@@ -421,11 +537,11 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(testShader, "materialShininess", (1.0f));
 
 		// Different colours for different height levels
-		labhelper::setUniformSlow(testShader, "materialColor1", vec3(0.0f, 1.0f, 0.0f)); // Gräs
+		labhelper::setUniformSlow(testShader, "materialColor1", vec3(0.0f, 1.0f, 0.0f)); // GrÃ¤s
 		labhelper::setUniformSlow(testShader, "materialColor2", vec3(0.0f, 0.0f, 1.0f)); // Vatten
 		labhelper::setUniformSlow(testShader, "materialColor3", vec3(0.5f, 0.5f, 0.5f)); // Lutning
 		labhelper::setUniformSlow(testShader, "materialColor4", vec3(0.7f, 0.7f, 0.5f)); // Sand
-		labhelper::setUniformSlow(testShader, "materialColor5", vec3(1.0f, 1.0f, 1.0f)); // Snö
+		labhelper::setUniformSlow(testShader, "materialColor5", vec3(1.0f, 1.0f, 1.0f)); // SnÃ¶
 		
 
 		mat4 projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 0.1f, 2000000.0f);
@@ -433,17 +549,31 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(testShader, "projection", projMatrix);
 		labhelper::setUniformSlow(testShader, "view", viewMatrix);
 		labhelper::setUniformSlow(testShader, "model", gridMatrix);
-
-
+    
 		// Draw initial grids to the screen
-		
-		//initialChunk1.DrawGridChunk();
 		initialChunk2.DrawGridChunk();
-		//initialChunk3.DrawGridChunk();
+		//grid.DrawGrid();
+	
+		computeShader.use();
+		computeShader.setInt("size", gridSize);
+		computeShader.setFloat("noiseScale", noiseScale);
+		// SSBO for computeshader
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, grid.getVBO());
+		glDispatchCompute(576, 1, 1);
 
-		debugDrawLight(viewMatrix, projMatrix, vec3(lightPosition));
+
+		glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+
+
+
+
+
+
+
 		// Render overlay GUI.
 		gui();
+
 
 		// Finish the frame and render the GUI
 		labhelper::finishFrame();

@@ -11,6 +11,8 @@ public:
 	void setGridWidth(unsigned int gridWidth);
 	void setGridHeight(unsigned int gridHeight);
 	void voronoiPoints(int startX, int startY, int stopX, int stopY);
+	GLuint getVBO();
+
 
 private: 
 	struct Vertex {
