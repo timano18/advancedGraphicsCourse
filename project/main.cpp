@@ -26,6 +26,7 @@ using namespace glm;
 
 #include "Grid.h"
 #include "noise.h"
+#include "Water.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -46,6 +47,7 @@ bool g_isMouseDragging = false;
 ///////////////////////////////////////////////////////////////////////////////
 GLuint simpleShaderProgram;
 GLuint testShader;
+GLuint waterShader;
 
 
 
@@ -89,6 +91,12 @@ void loadShaders(bool is_reload)
 	{
 		testShader = shader;
 	}
+
+	shader = labhelper::loadShaderProgram("../project/waterShader.vert", "../project/waterShader.frag", is_reload);
+	if (shader != 0)
+	{
+		waterShader = shader;
+	}
 }
 
 
@@ -116,7 +124,7 @@ void initialize()
 
 
 	glEnable(GL_DEPTH_TEST); // enable Z-buffering
-	glEnable(GL_CULL_FACE);  // enables backface culling
+	//glEnable(GL_CULL_FACE);  // enables backface culling
 }
 
 void debugDrawLight(const glm::mat4& viewMatrix,
@@ -154,6 +162,7 @@ void display(void)
 		{
 			windowWidth = w;
 			windowHeight = h;
+			std::cout << w << " & " << h << '\n';
 		}
 	}
 
@@ -260,11 +269,11 @@ bool handleEvents(void)
 	{
 		cameraPosition += cameraSpeed * deltaTime * cameraRight;
 	}
-	if(state[SDL_SCANCODE_Q]) // SDL_SCANCODE_LCTRL
+	if(state[SDL_SCANCODE_LCTRL]) // SDL_SCANCODE_LCTRL
 	{
 		cameraPosition -= cameraSpeed * deltaTime * worldUp;
 	}
-	if(state[SDL_SCANCODE_E]) // SDL_SCANCODE_SPACE
+	if(state[SDL_SCANCODE_SPACE]) // SDL_SCANCODE_SPACE
 	{
 		cameraPosition += cameraSpeed * deltaTime * worldUp;
 	}
@@ -332,13 +341,13 @@ int main(int argc, char* argv[])
 {
 	g_window = labhelper::init_window_SDL("OpenGL Project");
 
-	
+
 	initialize();
 
 	bool stopRendering = false;
 
 	auto startTime = std::chrono::system_clock::now();																				// Start clock, create inition chunks
-	auto start = std::chrono::high_resolution_clock::now();													
+	auto start = std::chrono::high_resolution_clock::now();
 
 	// Generate initial grid parameters
 	int gridWidth = 240;
@@ -359,21 +368,27 @@ int main(int argc, char* argv[])
 
 	//GridChunk initialChunk1;
 	GridChunk initialChunk2;
-	//GridChunk initialChunk3;
+	GridChunk initialChunk3;
 																																				// *** KOMMENTARER: Lägg till "levels of detail". Går ej att stoppa in negativa koordinater just nu. Kanske borde byta från (x1,y1,x2,y2) till (x1,x2,y1,y2)? Fixa "GridChunk::generateChunkGrids". Gör klart "GridChunk::gridChunkCenter()"
 	// createNewStandardChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd);																	// Standard (värden i grid.cpp)
 	//initialChunk1.createNewStandardChunk(0, 0, 1, 1, -500);
 	// createNewChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);				// Välj variabler
-	initialChunk2.createNewChunk(0, 0, 4, 4, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, 900, perlinScale, voronoiScale);				// Artificiellt lägre LoD. Måste ändra på filter-variablerna också för att det ska bli korrekt?
+	initialChunk2.createNewChunk(0, 0, 1, 1, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, 900, perlinScale, voronoiScale);				// Artificiellt lägre LoD. Måste ändra på filter-variablerna också för att det ska bli korrekt?
 	//initialChunk3.createNewChunk(1, 2, 4, 3, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, 0, perlinScale, voronoiScale);
 
 	//for (int i = -240; i < 240; i++) {
 	//	std::cout << "Perlin: " << perlinNoiseGen((float)i * 0.33, (float)i * 0.33) << '\n';
 	//}
 
+	// Water
+	//Water::Water(0, 0, 100, 100, 900);
+	//cameraPosition = {0, 0, 100};
+	//Water water1(-1000.0f, -1000.0f, 4000.0f, 4000.0f, 0.0f);
+	//water1.genQuad();
+
 
 	// Ocean
-	//initialChunk3.createNewChunk(-2, -2, 2, 2, gridWidth / 24, gridHeight / 24, cellSize * 24, 49.99, 0, 0);
+	initialChunk3.createNewChunk(0, 0, 1, 1, 2, 2, 2400, 50, 0, 0);
 
 	//initialChunk1.createNewStandardChunk(0, 0, 1, 1, 500);
 	//initialChunk2.createNewStandardChunk(0, 1, 1, 2, 500);
@@ -388,9 +403,175 @@ int main(int argc, char* argv[])
 	auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(stop - start);
 	std::cout << "Initial grid(s); generation time: " << duration.count() << std::endl;															// End clock, create inition chunks
 
-	//glm::vec2 test = {1994,5558};
-	//perturbedNoice(test);
+
+
+
+	int width = 1280;
+	int height = 720;
+
+
+
+	struct Vertex {
+		glm::vec3 position;
+		glm::vec3 normal;
+	};
+	std::vector<Vertex> vertices;
+	std::vector<unsigned int> indices;
+	std::vector<float> normals;
+
+
+	//Water water1(-1000.0f, -1000.0f, 4000.0f, 4000.0f, 0.0f);
+
+	float ground[] = {
+		0.0f, height, 0.0f,		0.0f, 1.0f,
+		0.0f, 0.0f, 0.0f,		0.0f, 0.0f,
+		width, height, 0.0f,	1.0f, 1.0f,
 	
+		width, height, 0.0f,	1.0f, 1.0f,
+		0.0f, 0.0f, 0.0f,		0.0f, 0.0f,
+		width, 0.0f, 0.0f,		1.0f, 0.0f
+	};  
+
+
+	unsigned int groundVAO, groundVBO;
+	glGenVertexArrays(1, &groundVAO);
+	glGenBuffers(1, &groundVBO);
+	glBindVertexArray(groundVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, groundVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(ground), &ground, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+
+
+
+	Vertex vertex;
+
+	// 0: topLeft
+	vertex.position = glm::vec3(0.0f, height, 0.0f);
+	vertex.normal = glm::vec3(0.0f, 0.0f, 0.0f);
+	vertices.push_back(vertex);
+	// 1: topRight
+	vertex.position = glm::vec3(width, height, 0.0f);
+	vertex.normal = glm::vec3(0.0f, 0.0f, 0.0f);
+	vertices.push_back(vertex);
+	// 2: bottomLeft
+	vertex.position = glm::vec3(0.0f, 0.0f, 0.0f);
+	vertex.normal = glm::vec3(0.0f, 0.0f, 0.0f);
+	vertices.push_back(vertex);
+	// 3: bottomRight
+	vertex.position = glm::vec3(width, 0.0f, 0.0f);
+	vertex.normal = glm::vec3(0.0f, 0.0f, 0.0f);
+	vertices.push_back(vertex);
+
+	// First triangle
+	indices.push_back(2);
+	indices.push_back(0);
+	indices.push_back(3);
+	// Second triangle
+	indices.push_back(3);
+	indices.push_back(0);
+	indices.push_back(1);
+
+	// Calculate normals for the two triangles
+	glm::vec3 normal1 = glm::normalize(glm::cross(
+		vertices[3].position - vertices[0].position,
+		vertices[2].position - vertices[0].position));
+
+	glm::vec3 normal2 = glm::normalize(glm::cross(
+		vertices[1].position - vertices[0].position,
+		vertices[3].position - vertices[0].position));
+
+	// Add normals to the vertices
+	vertices[0].normal += glm::normalize(normal1 + normal2);
+	vertices[2].normal += glm::normalize(normal1);
+	vertices[3].normal += glm::normalize(normal1 + normal2);
+	vertices[1].normal += glm::normalize(normal2);
+
+	for (int i = 0; i < vertices.size(); i++) {
+		vertices[i].normal = glm::normalize(vertices[i].normal);
+	}
+
+
+
+	// *** Buffers ***
+	unsigned int VAO;
+	glGenVertexArrays(1, &VAO);
+	glBindVertexArray(VAO);
+
+	unsigned int VBO;
+	glGenBuffers(1, &VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+
+	unsigned int EBO;
+	glGenBuffers(1, &EBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+	// Postition attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	// Normal attribute
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, normal)));
+	glEnableVertexAttribArray(1);
+
+	glBindVertexArray(0);
+
+	// *** FBO:s for reflection and refraction
+	// https://learnopengl.com/Advanced-OpenGL/Framebuffers
+	// https://www.cse.chalmers.se/edu/course/TDA362/tutorials/lab5.html
+	// Reflection
+
+
+
+
+
+
+
+
+	// framebuffer configuration
+	// -------------------------
+	unsigned int fbo;
+	glGenFramebuffers(1, &fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+	// create a color attachment texture
+	unsigned int textureColorbuffer;
+	glGenTextures(1, &textureColorbuffer);
+	glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
+
+	// create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
+	unsigned int rbo;
+	glGenRenderbuffers(1, &rbo);
+	glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height); // use a single renderbuffer object for both a depth AND stencil buffer.
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
+	// now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+	
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << '\n';
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+	
+
+
+
+	
+
+
+
 	// Start render-loop
 	while(!stopRendering)
 	{
@@ -412,34 +593,81 @@ int main(int argc, char* argv[])
 
 		
 		lightDirection = rotateSun(sunangle);
-		glUseProgram(testShader); 
+		mat4 projMatrix;
+		mat4 viewMatrix;
+
+
+
+
+
+
+
+
+
+
+		// GROUND
+
+
+		// first pass
+		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // we're not using the stencil buffer now
+		glEnable(GL_DEPTH_TEST);
+
+
+
+		glUseProgram(testShader);
 		labhelper::setUniformSlow(testShader, "viewPos", cameraPosition);
 		labhelper::setUniformSlow(testShader, "lightDirection", lightDirection);
 		labhelper::setUniformSlow(testShader, "lightDiffuse", vec3(1.0f));
 		labhelper::setUniformSlow(testShader, "lightAmbient", vec3(0.1f));
 		labhelper::setUniformSlow(testShader, "lightSpecular", vec3(1.0f));
 		labhelper::setUniformSlow(testShader, "materialShininess", (1.0f));
-
-		// Different colours for different height levels
 		labhelper::setUniformSlow(testShader, "materialColor1", vec3(0.0f, 1.0f, 0.0f)); // Gräs
 		labhelper::setUniformSlow(testShader, "materialColor2", vec3(0.0f, 0.0f, 1.0f)); // Vatten
 		labhelper::setUniformSlow(testShader, "materialColor3", vec3(0.5f, 0.5f, 0.5f)); // Lutning
 		labhelper::setUniformSlow(testShader, "materialColor4", vec3(0.7f, 0.7f, 0.5f)); // Sand
 		labhelper::setUniformSlow(testShader, "materialColor5", vec3(1.0f, 1.0f, 1.0f)); // Snö
-		
 
-		mat4 projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 0.1f, 2000000.0f);
-		mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
+		projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 0.1f, 2000000.0f);
+		viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
+
 		labhelper::setUniformSlow(testShader, "projection", projMatrix);
 		labhelper::setUniformSlow(testShader, "view", viewMatrix);
 		labhelper::setUniformSlow(testShader, "model", gridMatrix);
 
-
-		// Draw initial grids to the screen
-		
-		//initialChunk1.DrawGridChunk();
 		initialChunk2.DrawGridChunk();
-		//initialChunk3.DrawGridChunk();
+
+
+
+
+		// WATER
+		// https://www.cse.chalmers.se/edu/course/TDA362/tutorials/lab5.html
+
+		// second pass
+		glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
+		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+		glDisable(GL_DEPTH_TEST);
+
+		glUseProgram(waterShader);
+
+		labhelper::setUniformSlow(waterShader, "projection", projMatrix);
+		labhelper::setUniformSlow(waterShader, "view", viewMatrix);
+		labhelper::setUniformSlow(waterShader, "model", gridMatrix);
+
+		glBindVertexArray(groundVAO);
+		//glBindVertexArray(VAO);
+		glDisable(GL_DEPTH_TEST);
+		glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+
+		//glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+		glDrawArrays(GL_TRIANGLES,0,6);
+
+		//water1.drawWater();
+
+
+
 
 		debugDrawLight(viewMatrix, projMatrix, vec3(lightPosition));
 		// Render overlay GUI.

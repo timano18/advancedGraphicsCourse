@@ -36,7 +36,7 @@ void main()
         vertColour = materialColor1;
     } else
     // Sand
-    if (FragPos.y > 0) {
+    if (true) {
         vertColour = materialColor4;
     }
 

@@ -94,52 +94,6 @@ void Grid::generateGrid()
 
 	voronoiPoints(startX - m_width * borderValue, startY - m_height * borderValue, stopX + m_width * borderValue, stopY + m_height * borderValue);
 
-
-	/*
-	int startIndexX = (m_xStartPos-1) / (m_width);
-	int startIndexy = (m_yStartPos-1) / (m_height);
-	for (int i = startIndexX - 1; i <= startIndexX + 1; i++) {
-		for (int j = startIndexy - 1; j <= startIndexy + 1; j++) {
-			std::cout << "i: " << i << " & j: " << j << '\n';
-			voronoiPoints(i * m_width, j * m_height);
-		}
-	}
-	*/
-
-
-	//
-	//for (int i = -1; i <= 1; i++) {
-	//	for (int j = -1; j <= 1; j++) {
-	//		voronoiPoints(i * m_width, j * m_height);
-	//	}
-	//}
-
-	/*
-	voronoiPoints(240, -240);
-		voronoiPoints(240, 0);
-	voronoiPoints(240, 240);
-		voronoiPoints(0, -240);
-		voronoiPoints(0, 0);
-		voronoiPoints(0, 240);
-	voronoiPoints(-240, -240);
-		voronoiPoints(-240, 0);
-	voronoiPoints(-240, 240);
-	*/
-
-	/*
-	voronoiPoints(240, -240);
-	voronoiPoints(240, 0);
-	voronoiPoints(240, 240);
-	voronoiPoints(0, -240);
-	voronoiPoints(0, 0);
-	voronoiPoints(0, 240);
-	voronoiPoints(-240, -240);
-	voronoiPoints(-240, 0);
-	voronoiPoints(-240, 240);
-	*/
-
-	//std::cout << posArrGlob.size() << '\n' << '\n';
-
 	// Generate vertices
 	for (int i = startY; i < stopY; i++) {
 		for (int j = startX; j < stopX; j++) {
@@ -149,10 +103,7 @@ void Grid::generateGrid()
 			point = perturbedNoice(point);
 
 			// Generate noise
-			//float z = perlinNoise(point.x, point.y, m_width, m_height, m_perlinScale);
 			float z = -m_zStartPos + perlinNoise(point.x, point.y, m_width, m_height, m_perlinScale) + voronoiNoise(point.x, point.y, m_width, m_height, posArrGlob, m_voronoiScale);
-			//std::cout << "Perlin in point " << "x: " << point.x << " & y: " << point.y << " is: " << perlinNoise(point.x, point.y, m_width, m_height, m_perlinScale) << '\n';
-			//float z = voronoiNoise(point.x, point.y, m_width, m_height, posArrGlob, m_voronoiScale);
 			Vertex vertex;
 			vertex.position = glm::vec3(j * m_cellSize, i * m_cellSize, z);
 			vertex.normal = glm::vec3(0.0f, 0.0f, 0.0f);  // Ensure the normal is initialized to zero
