@@ -48,6 +48,7 @@ bool g_isMouseDragging = false;
 ///////////////////////////////////////////////////////////////////////////////
 GLuint simpleShaderProgram;
 GLuint testShader;
+GLuint quadShader;
 
 
 
@@ -80,8 +81,11 @@ labhelper::Model* sphereModel = nullptr;
 mat4 gridMatrix;
 int gridSize = 3000;
 float noiseScale = 0.01;
-
-
+float simpexScale = 500;
+float worleyScale = 500;
+float simpexAmplitude = 100;
+float worleyAmplitude = 100;
+float ratio = 0.5;
 
 
 void loadShaders(bool is_reload)
@@ -97,6 +101,13 @@ void loadShaders(bool is_reload)
 	{
 		testShader = shader;
 	}
+	shader = labhelper::loadShaderProgram("../project/background.vert", "../project/background.frag", is_reload);
+	if (shader != 0)
+	{
+		quadShader = shader;
+	}
+
+
 
 }
 
@@ -327,7 +338,11 @@ void gui()
 	ImGui::Text("Camera Pos:  x: %.3f  y: %.3f  z: %.3f", cameraPosition.x, cameraPosition.y, cameraPosition.z);
 	ImGui::SliderFloat("Sun angle", &sunangle, 0.0f, 2.0f);
 	ImGui::Text("Light Direction:  x: %.3f  y: %.3f  z: %.3f", lightDirection.x, lightDirection.y, lightDirection.z);
-	ImGui::SliderFloat("NoiseScale", &noiseScale, 0.0f, 1500.0f);
+	ImGui::SliderFloat("simpexScale", &simpexScale, 0.1f, 3000.0f);
+	ImGui::SliderFloat("worleyScale", &worleyScale, 0.1f, 3000.0f);
+	ImGui::SliderFloat("simpexAmplitude", &simpexAmplitude, 0.1f, 3000.0f);
+	ImGui::SliderFloat("worleyAmplitude", &worleyAmplitude, 0.1f, 3000.0f);
+	ImGui::SliderFloat("ratio", &ratio, 0.0f, 1.0f);
 	ImGui::SliderInt("Grid Size", &gridSize, 10, 10000);
 
 	// ----------------------------------------------------------
@@ -478,7 +493,7 @@ int main(int argc, char* argv[])
 	auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(stop - start);
 	std::cout << "Initial grid(s); generation time: " << duration.count() << std::endl;												// End clock, create inition chunks
 
-	
+
 	
 	std::cout << "After compute shader" << std::endl;
 	glBindBuffer(GL_ARRAY_BUFFER, grid.getVBO());
@@ -530,15 +545,24 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(testShader, "model", gridMatrix);
 		grid.DrawGrid();
 	
+
 		computeShader.use();
 		computeShader.setInt("size", gridSize);
-		computeShader.setFloat("noiseScale", noiseScale);
+		computeShader.setFloat("simpexScale", simpexScale);
+		computeShader.setFloat("worleyScale", worleyScale);
+		computeShader.setFloat("simpexAmplitude", simpexAmplitude);
+		computeShader.setFloat("worleyAmplitude", worleyAmplitude);
+		computeShader.setFloat("ratio", ratio);
+		
 		// SSBO for computeshader
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, grid.getVBO());
-		glDispatchCompute(576, 1, 1);
+		glDispatchCompute(57600, 1, 1);
 
 
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+		//glUseProgram(quadShader);
+		//labhelper::drawFullScreenQuad();
 
 		// render image to quad
 		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

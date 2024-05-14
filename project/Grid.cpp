@@ -16,8 +16,8 @@ unsigned int s_height_Chunk = 3;
 
 // For grid
 int divider = 1;
-unsigned int s_width = 240;
-unsigned int s_height = 240;
+unsigned int s_width = 2400;
+unsigned int s_height = 2400;
 int s_xStartPos = -100;
 int s_yStartPos = -100;
 float s_cellSize = 10.0f;
@@ -111,7 +111,7 @@ void Grid::generateGrid()
 
 			// Generate noise
 			//float z = perlinNoise(i, j, m_width, m_height, m_perlinScale) + voronoiNoise(i, j, m_width, m_height, posArr, m_voronoiScale);
-			float z = perlinNoise(i * m_cellSize, j * m_cellSize, m_width, m_height, m_perlinScale );
+			//float z = perlinNoise(i * m_cellSize, j * m_cellSize, m_width, m_height, m_perlinScale );
 			Vertex vertex;
 			vertex.position = glm::vec3(i * m_cellSize, j * m_cellSize , 0);
 			vertex.normal = glm::vec3(0.0f, 0.0f, 0.0f);  // Ensure the normal is initialized to zero
@@ -142,7 +142,7 @@ void Grid::generateGrid()
 		
 		
 
-
+			/*
 			
 			// Calculate normals for the two triangles
 			glm::vec3 normal1 = (glm::cross(
@@ -159,7 +159,7 @@ void Grid::generateGrid()
 			vertices[bottomLeft].normal += (normal1);
 			vertices[bottomRight].normal += (normal1 + normal2);
 			vertices[topRight].normal += (normal2);
-			
+			*/
 	
 		}
 	}
@@ -199,14 +199,14 @@ void Grid::generateGrid()
 
 
 	// *** Buffers ***
-	std::cout << "size of vertex list: " << vertices.size() << std::endl;
-	std::cout << "size of vertex: " << vertices.data() << std::endl;
+	//std::cout << "size of vertex list: " << vertices.size() << std::endl;
+	//std::cout << "size of vertex: " << vertices.data() << std::endl;
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
 
 	glGenBuffers(1, &EBO);
