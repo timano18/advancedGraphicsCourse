@@ -24,8 +24,7 @@ private:
 	float m_stopY;
 	float m_zStartPos;
 
-
-	GLuint VAO, VBO, EBO, fbo, textureColorbuffer, rbo;
+	GLuint VAO, VBO, EBO;
 
 
 };

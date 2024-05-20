@@ -9,6 +9,7 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 #include <algorithm>
 #include <chrono>
 #include <iostream>
+#include <stb_image.h>
 
 #include <labhelper.h>
 #include <imgui.h>
@@ -124,7 +125,7 @@ void initialize()
 
 
 	glEnable(GL_DEPTH_TEST); // enable Z-buffering
-	//glEnable(GL_CULL_FACE);  // enables backface culling
+	glEnable(GL_CULL_FACE);  // enables backface culling
 }
 
 void debugDrawLight(const glm::mat4& viewMatrix,
@@ -162,7 +163,6 @@ void display(void)
 		{
 			windowWidth = w;
 			windowHeight = h;
-			std::cout << w << " & " << h << '\n';
 		}
 	}
 
@@ -269,11 +269,11 @@ bool handleEvents(void)
 	{
 		cameraPosition += cameraSpeed * deltaTime * cameraRight;
 	}
-	if(state[SDL_SCANCODE_LCTRL]) // SDL_SCANCODE_LCTRL
+	if(state[SDL_SCANCODE_Q]) // SDL_SCANCODE_LCTRL
 	{
 		cameraPosition -= cameraSpeed * deltaTime * worldUp;
 	}
-	if(state[SDL_SCANCODE_SPACE]) // SDL_SCANCODE_SPACE
+	if(state[SDL_SCANCODE_E]) // SDL_SCANCODE_SPACE
 	{
 		cameraPosition += cameraSpeed * deltaTime * worldUp;
 	}
@@ -346,7 +346,7 @@ int main(int argc, char* argv[])
 
 	bool stopRendering = false;
 
-	auto startTime = std::chrono::system_clock::now();																				// Start clock, create inition chunks
+	auto startTime = std::chrono::system_clock::now();																							// Start clock, create inition chunks
 	auto start = std::chrono::high_resolution_clock::now();
 
 	// Generate initial grid parameters
@@ -358,12 +358,6 @@ int main(int argc, char* argv[])
 	float perlinScale = 1500.0;
 	float voronoiScale = 200.0;
 
-	// Generate initial chunk parameters
-	// int xChunkStart = 0;
-	// int yChunkStart = 0;
-	// int xChunkEnd = 1;
-	// int yChunkEnd = 3;
-
 	float LoD = 1.0; // Tillfällig
 
 	//GridChunk initialChunk1;
@@ -374,25 +368,9 @@ int main(int argc, char* argv[])
 	//initialChunk1.createNewStandardChunk(0, 0, 1, 1, -500);
 	// createNewChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);				// Välj variabler
 	initialChunk2.createNewChunk(0, 0, 1, 1, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, 900, perlinScale, voronoiScale);				// Artificiellt lägre LoD. Måste ändra på filter-variablerna också för att det ska bli korrekt?
-	//initialChunk3.createNewChunk(1, 2, 4, 3, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, 0, perlinScale, voronoiScale);
-
-	//for (int i = -240; i < 240; i++) {
-	//	std::cout << "Perlin: " << perlinNoiseGen((float)i * 0.33, (float)i * 0.33) << '\n';
-	//}
-
-	// Water
-	//Water::Water(0, 0, 100, 100, 900);
-	//cameraPosition = {0, 0, 100};
-	//Water water1(-1000.0f, -1000.0f, 4000.0f, 4000.0f, 0.0f);
-	//water1.genQuad();
-
 
 	// Ocean
 	initialChunk3.createNewChunk(0, 0, 1, 1, 2, 2, 2400, 50, 0, 0);
-
-	//initialChunk1.createNewStandardChunk(0, 0, 1, 1, 500);
-	//initialChunk2.createNewStandardChunk(0, 1, 1, 2, 500);
-	//initialChunk3.createNewStandardChunk(0, 2, 1, 3, 500);
 
 	gridMatrix = mat4(1.0f);
 
@@ -404,12 +382,11 @@ int main(int argc, char* argv[])
 	std::cout << "Initial grid(s); generation time: " << duration.count() << std::endl;															// End clock, create inition chunks
 
 
-
-
+	
+	// SETUP
+	// DESSA MÅSTE UPPDATERAS NÄR MAN ÄNDRAR STORLEKEN PÅ SKÄRMEN!!!
 	int width = 1280;
 	int height = 720;
-
-
 
 	struct Vertex {
 		glm::vec3 position;
@@ -419,203 +396,138 @@ int main(int argc, char* argv[])
 	std::vector<unsigned int> indices;
 	std::vector<float> normals;
 
+	// PLANE
+	float waterPlane[] = {
+	2400, 2400, 0.0f,		1.0f, 1.0f,
+	2400, 0, 0.0f,			0.0f, 1.0f,
+	0, 2400, 0.0f,			1.0f, 0.0f,
 
-	//Water water1(-1000.0f, -1000.0f, 4000.0f, 4000.0f, 0.0f);
+	2400, 0, 0.0f,			0.0f, 1.0f,
+	0, 0, 0.0f,				0.0f, 0.0f,
+	0, 2400, 0.0f,			1.0f, 0.0f
+};
 
-	float ground[] = {
-		0.0f, height, 0.0f,		0.0f, 1.0f,
-		0.0f, 0.0f, 0.0f,		0.0f, 0.0f,
-		width, height, 0.0f,	1.0f, 1.0f,
-	
-		width, height, 0.0f,	1.0f, 1.0f,
-		0.0f, 0.0f, 0.0f,		0.0f, 0.0f,
-		width, 0.0f, 0.0f,		1.0f, 0.0f
-	};  
-
-
-	unsigned int groundVAO, groundVBO;
-	glGenVertexArrays(1, &groundVAO);
-	glGenBuffers(1, &groundVBO);
-	glBindVertexArray(groundVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, groundVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(ground), &ground, GL_STATIC_DRAW);
+	unsigned int waterPlaneVAO, waterPlaneVBO;
+	glGenVertexArrays(1, &waterPlaneVAO);
+	glGenBuffers(1, &waterPlaneVBO);
+	glBindVertexArray(waterPlaneVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, waterPlaneVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(waterPlane), &waterPlane, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
+	// FRAMEBUFFERS
+	// REFLECTION
+	unsigned int reflectionFBO;
+	glGenFramebuffers(1, &reflectionFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, reflectionFBO);
 
+	unsigned int reflectionRBO;
+	glGenRenderbuffers(1, &reflectionRBO);
+	glBindRenderbuffer(GL_RENDERBUFFER, reflectionRBO);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, reflectionRBO);
 
-
-	Vertex vertex;
-
-	// 0: topLeft
-	vertex.position = glm::vec3(0.0f, height, 0.0f);
-	vertex.normal = glm::vec3(0.0f, 0.0f, 0.0f);
-	vertices.push_back(vertex);
-	// 1: topRight
-	vertex.position = glm::vec3(width, height, 0.0f);
-	vertex.normal = glm::vec3(0.0f, 0.0f, 0.0f);
-	vertices.push_back(vertex);
-	// 2: bottomLeft
-	vertex.position = glm::vec3(0.0f, 0.0f, 0.0f);
-	vertex.normal = glm::vec3(0.0f, 0.0f, 0.0f);
-	vertices.push_back(vertex);
-	// 3: bottomRight
-	vertex.position = glm::vec3(width, 0.0f, 0.0f);
-	vertex.normal = glm::vec3(0.0f, 0.0f, 0.0f);
-	vertices.push_back(vertex);
-
-	// First triangle
-	indices.push_back(2);
-	indices.push_back(0);
-	indices.push_back(3);
-	// Second triangle
-	indices.push_back(3);
-	indices.push_back(0);
-	indices.push_back(1);
-
-	// Calculate normals for the two triangles
-	glm::vec3 normal1 = glm::normalize(glm::cross(
-		vertices[3].position - vertices[0].position,
-		vertices[2].position - vertices[0].position));
-
-	glm::vec3 normal2 = glm::normalize(glm::cross(
-		vertices[1].position - vertices[0].position,
-		vertices[3].position - vertices[0].position));
-
-	// Add normals to the vertices
-	vertices[0].normal += glm::normalize(normal1 + normal2);
-	vertices[2].normal += glm::normalize(normal1);
-	vertices[3].normal += glm::normalize(normal1 + normal2);
-	vertices[1].normal += glm::normalize(normal2);
-
-	for (int i = 0; i < vertices.size(); i++) {
-		vertices[i].normal = glm::normalize(vertices[i].normal);
-	}
-
-
-
-	// *** Buffers ***
-	unsigned int VAO;
-	glGenVertexArrays(1, &VAO);
-	glBindVertexArray(VAO);
-
-	unsigned int VBO;
-	glGenBuffers(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
-
-	unsigned int EBO;
-	glGenBuffers(1, &EBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
-
-	// Postition attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	// Normal attribute
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, normal)));
-	glEnableVertexAttribArray(1);
-
-	glBindVertexArray(0);
-
-	// *** FBO:s for reflection and refraction
-	// https://learnopengl.com/Advanced-OpenGL/Framebuffers
-	// https://www.cse.chalmers.se/edu/course/TDA362/tutorials/lab5.html
-	// Reflection
-
-
-
-
-
-
-
-
-	// framebuffer configuration
-	// -------------------------
-	unsigned int fbo;
-	glGenFramebuffers(1, &fbo);
-	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-
-	// create a color attachment texture
-	unsigned int textureColorbuffer;
-	glGenTextures(1, &textureColorbuffer);
-	glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+	unsigned int reflectionTextureColorbuffer;
+	glGenTextures(1, &reflectionTextureColorbuffer);
+	glBindTexture(GL_TEXTURE_2D, reflectionTextureColorbuffer);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, reflectionTextureColorbuffer, 0);
 
-	// create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
-	unsigned int rbo;
-	glGenRenderbuffers(1, &rbo);
-	glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height); // use a single renderbuffer object for both a depth AND stencil buffer.
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
-	// now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
-	
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << '\n';
+	// REFRACTION
+	unsigned int refractionFBO;
+	glGenFramebuffers(1, &refractionFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, refractionFBO);
 
+	unsigned int refractionRBO;
+	glGenRenderbuffers(1, &refractionRBO);
+	glBindRenderbuffer(GL_RENDERBUFFER, refractionRBO);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, refractionRBO);
+
+	unsigned int refractionTextureColorbuffer;
+	glGenTextures(1, &refractionTextureColorbuffer);
+	glBindTexture(GL_TEXTURE_2D, refractionTextureColorbuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, refractionTextureColorbuffer, 0);
+
+	unsigned int refractionTextureDepthbuffer;
+	glGenTextures(1, &refractionTextureDepthbuffer);
+	glBindTexture(GL_TEXTURE_2D, refractionTextureDepthbuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, refractionTextureDepthbuffer, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, refractionTextureDepthbuffer, 0);
+
+	// Load DUDVmap
+	unsigned int DUDVtexture;
+	glGenTextures(1, &DUDVtexture);
+	glBindTexture(GL_TEXTURE_2D, DUDVtexture);
+
+	int DUDVwidth, DUDVheight, DUDVnrChannels;
+	unsigned char *DUDVdata = stbi_load("../textures/water/waterDUDV.png", &DUDVwidth, &DUDVheight, &DUDVnrChannels, 0);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, DUDVwidth, DUDVheight, 0, GL_RGB, GL_UNSIGNED_BYTE, DUDVdata);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// Load Normalmap
+	unsigned int Normaltexture;
+	glGenTextures(1, &Normaltexture);
+	glBindTexture(GL_TEXTURE_2D, Normaltexture);
+
+	int Normalwidth, Normalheight, NormalnrChannels;
+	unsigned char* Normaldata = stbi_load("../textures/water/waterNormal.png", &Normalwidth, &Normalheight, &NormalnrChannels, 0);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Normalwidth, Normalheight, 0, GL_RGB, GL_UNSIGNED_BYTE, Normaldata);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// VARIABLES
+	float waterHeight = 0.0f;
+	float waveSpeed = 0.00025f;
+	float waveScale = 7.0f;
+
+	// END
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
-	
-
-
-
-	
-
-
 
 	// Start render-loop
 	while(!stopRendering)
 	{
-
+		// *** SETUP ***
 		//update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
 		previousTime = currentTime;
 		currentTime = timeSinceStart.count();
 		deltaTime = currentTime - previousTime;
-
 		// check events (keyboard among other)
 		stopRendering = handleEvents();
-
 		// Inform imgui of new frame
 		labhelper::newFrame( g_window );
-
 		// render to window
 		display();
-
-		
 		lightDirection = rotateSun(sunangle);
 		mat4 projMatrix;
 		mat4 viewMatrix;
 
-
-
-
-
-
-
-
-
-
-		// GROUND
-
-
-		// first pass
-		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // we're not using the stencil buffer now
-		glEnable(GL_DEPTH_TEST);
-
-
-
+		// *** LOAD DEFAULT VALUES TO SHADERS ***
+		projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 0.1f, 2000000.0f);
+		viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
+		
+		// test shader
 		glUseProgram(testShader);
 		labhelper::setUniformSlow(testShader, "viewPos", cameraPosition);
 		labhelper::setUniformSlow(testShader, "lightDirection", lightDirection);
@@ -623,53 +535,121 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(testShader, "lightAmbient", vec3(0.1f));
 		labhelper::setUniformSlow(testShader, "lightSpecular", vec3(1.0f));
 		labhelper::setUniformSlow(testShader, "materialShininess", (1.0f));
+
 		labhelper::setUniformSlow(testShader, "materialColor1", vec3(0.0f, 1.0f, 0.0f)); // Gräs
 		labhelper::setUniformSlow(testShader, "materialColor2", vec3(0.0f, 0.0f, 1.0f)); // Vatten
 		labhelper::setUniformSlow(testShader, "materialColor3", vec3(0.5f, 0.5f, 0.5f)); // Lutning
 		labhelper::setUniformSlow(testShader, "materialColor4", vec3(0.7f, 0.7f, 0.5f)); // Sand
 		labhelper::setUniformSlow(testShader, "materialColor5", vec3(1.0f, 1.0f, 1.0f)); // Snö
 
-		projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 0.1f, 2000000.0f);
-		viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
-
-		labhelper::setUniformSlow(testShader, "projection", projMatrix);
-		labhelper::setUniformSlow(testShader, "view", viewMatrix);
 		labhelper::setUniformSlow(testShader, "model", gridMatrix);
+		labhelper::setUniformSlow(testShader, "waterPlaneHeight", waterHeight); // Height if the water plane (default 0.0)
+		labhelper::setUniformSlow(testShader, "waterPlaneDirection", 1.0f); // 1 = cull > height, -1 = cull < height
 
-		initialChunk2.DrawGridChunk();
-
-
-
-
-		// WATER
-		// https://www.cse.chalmers.se/edu/course/TDA362/tutorials/lab5.html
-
-		// second pass
-		glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
-		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
-		glDisable(GL_DEPTH_TEST);
-
+		// water shader
 		glUseProgram(waterShader);
-
 		labhelper::setUniformSlow(waterShader, "projection", projMatrix);
 		labhelper::setUniformSlow(waterShader, "view", viewMatrix);
 		labhelper::setUniformSlow(waterShader, "model", gridMatrix);
+		labhelper::setUniformSlow(waterShader, "reflectionTexture", 0);
+		labhelper::setUniformSlow(waterShader, "refractionTexture", 1);
+		labhelper::setUniformSlow(waterShader, "dudvMap", 2);
+		labhelper::setUniformSlow(waterShader, "waveScale", waveScale);
 
-		glBindVertexArray(groundVAO);
-		//glBindVertexArray(VAO);
-		glDisable(GL_DEPTH_TEST);
-		glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+		labhelper::setUniformSlow(waterShader, "viewPos", cameraPosition);
+		labhelper::setUniformSlow(waterShader, "lightDirection", lightDirection);
+		labhelper::setUniformSlow(waterShader, "lightDiffuse", vec3(1.0f));
+		labhelper::setUniformSlow(waterShader, "lightAmbient", vec3(0.1f));
+		labhelper::setUniformSlow(waterShader, "lightSpecular", vec3(1.0f));
+		labhelper::setUniformSlow(waterShader, "materialShininess", (1.0f));
 
-		//glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
-		glDrawArrays(GL_TRIANGLES,0,6);
+		// *** RENDER ***
+		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_CLIP_DISTANCE0);
 
-		//water1.drawWater();
+		// wave movement
+		waveScale += waveSpeed;
+		//waveScale = fmod(waveScale, 10); // "hackar" ibland vid (waveScale = 1)
+		if (waveScale >= 8.0) {
+			waveScale -= 1.0;
+		}
+		labhelper::setUniformSlow(waterShader, "waveScale", waveScale);
+
+		// ground, reflection (water)
+		glBindFramebuffer(GL_FRAMEBUFFER, reflectionFBO);
+
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		
+		glUseProgram(testShader);
+		labhelper::setUniformSlow(testShader, "waterPlaneDirection", -1.0f);
+
+		// Change camera for the reflection
+		float cameraDistance = 2 * (cameraPosition.y - waterHeight);
+
+		cameraPosition = {cameraPosition.x, cameraPosition.y - cameraDistance, cameraPosition.z};
+		cameraDirection.y = -cameraDirection.y;
+		labhelper::setUniformSlow(testShader, "viewPos", cameraPosition);
+		projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 0.1f, 2000000.0f); // 0.1f, 2000000.0f near/far plane
+		viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
+		labhelper::setUniformSlow(testShader, "projection", projMatrix);
+		labhelper::setUniformSlow(testShader, "view", viewMatrix);
+
+		initialChunk2.DrawGridChunk();
+
+		cameraPosition = { cameraPosition.x, cameraPosition.y + cameraDistance, cameraPosition.z};
+		cameraDirection.y = -cameraDirection.y;
+		labhelper::setUniformSlow(testShader, "viewPos", cameraPosition);
+		projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 0.1f, 2000000.0f);
+		viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
+		labhelper::setUniformSlow(testShader, "projection", projMatrix);
+		labhelper::setUniformSlow(testShader, "view", viewMatrix);
+		
+		// ground, refraction (water)
+		glBindFramebuffer(GL_FRAMEBUFFER, refractionFBO);
+
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		glUseProgram(testShader);
+		labhelper::setUniformSlow(testShader, "waterPlaneDirection", 1.0f);
+		initialChunk2.DrawGridChunk();
 
 
+		// Draw scene
+		
+		// ground
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+		glUseProgram(testShader);
+		labhelper::setUniformSlow(testShader, "waterPlaneDirection", 0.0f);
+		initialChunk2.DrawGridChunk();
 
-		debugDrawLight(viewMatrix, projMatrix, vec3(lightPosition));
+		
+		// water plane
+		glUseProgram(waterShader);
+		glBindVertexArray(waterPlaneVAO);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, reflectionTextureColorbuffer);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, refractionTextureColorbuffer);
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, DUDVtexture);
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, Normaltexture);
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, refractionTextureDepthbuffer);
+
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+
+		glDisable(GL_BLEND);
+		
+
+		// *** GUI
 		// Render overlay GUI.
 		gui();
 
