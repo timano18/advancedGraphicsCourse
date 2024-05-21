@@ -343,7 +343,13 @@ int main(int argc, char* argv[])
 
 
 	initialize();
-
+	int w, h;
+	SDL_GetWindowSize(g_window, &w, &h);
+	if (w != windowWidth || h != windowHeight)
+	{
+		windowWidth = w;
+		windowHeight = h;
+	}
 	bool stopRendering = false;
 
 	auto startTime = std::chrono::system_clock::now();																							// Start clock, create inition chunks
@@ -427,14 +433,14 @@ int main(int argc, char* argv[])
 	unsigned int reflectionRBO;
 	glGenRenderbuffers(1, &reflectionRBO);
 	glBindRenderbuffer(GL_RENDERBUFFER, reflectionRBO);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, windowWidth, windowHeight);
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, reflectionRBO);
 
 	unsigned int reflectionTextureColorbuffer;
 	glGenTextures(1, &reflectionTextureColorbuffer);
 	glBindTexture(GL_TEXTURE_2D, reflectionTextureColorbuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -449,14 +455,14 @@ int main(int argc, char* argv[])
 	unsigned int refractionRBO;
 	glGenRenderbuffers(1, &refractionRBO);
 	glBindRenderbuffer(GL_RENDERBUFFER, refractionRBO);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, windowWidth, windowHeight);
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, refractionRBO);
 
 	unsigned int refractionTextureColorbuffer;
 	glGenTextures(1, &refractionTextureColorbuffer);
 	glBindTexture(GL_TEXTURE_2D, refractionTextureColorbuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -466,7 +472,7 @@ int main(int argc, char* argv[])
 	unsigned int refractionTextureDepthbuffer;
 	glGenTextures(1, &refractionTextureDepthbuffer);
 	glBindTexture(GL_TEXTURE_2D, refractionTextureDepthbuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, windowWidth, windowHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -507,6 +513,35 @@ int main(int argc, char* argv[])
 	// Start render-loop
 	while(!stopRendering)
 	{
+		{
+			int w, h;
+			SDL_GetWindowSize(g_window, &w, &h);
+			if (w != windowWidth || h != windowHeight)
+			{
+				windowWidth = w;
+				windowHeight = h;
+			}
+		}
+
+
+		//Update screen size
+		glBindRenderbuffer(GL_RENDERBUFFER, reflectionRBO);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, windowWidth, windowHeight);
+		glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+		glBindTexture(GL_TEXTURE_2D, refractionTextureDepthbuffer);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, windowWidth, windowHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+
+		glBindRenderbuffer(GL_RENDERBUFFER, refractionRBO);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, windowWidth, windowHeight);
+		glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+		glBindTexture(GL_TEXTURE_2D, refractionTextureColorbuffer);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+		glBindTexture(GL_TEXTURE_2D, refractionTextureDepthbuffer);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, windowWidth, windowHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
 		// *** SETUP ***
 		//update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
