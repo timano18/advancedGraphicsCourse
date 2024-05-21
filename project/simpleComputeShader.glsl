@@ -301,11 +301,13 @@ float simpexOctave(vec2 pos) {
 	vec2 step = vec2(1.3, 1.7);
     float n = color(pos);
     n += 0.5 * color(pos * 2.0 - step);
-    n += 0.25 * color(pos * 4.0 - 2.0 * step);
-    n += 0.125 * color(pos * 8.0 - 3.0 * step);
-    n += 0.0625 * color(pos * 16.0 - 4.0 * step);
-    n += 0.03125 * color(pos * 32.0 - 5.0 * step);
+	n += 0.25 * color(pos * 4.0 - 2.0 * step);
+	n += 0.125 * color(pos * 8.0 - 3.0 * step);
+	n += 0.0625 * color(pos * 16.0 - 4.0 * step);
+	n += 0.03125 * color(pos * 32.0 - 5.0 * step);
+	n += 0.015625 * color(pos * 64.0 -6.0 * step);
 
+	
 	return n;
 }
 
@@ -327,7 +329,7 @@ void main() {
 
 
 	vertices[idx].positionZ = calculateZ(vec2(vertices[idx].positionX, vertices[idx].positionY));
-
+	vertices[idx].positionZ += 30;
 
 
 

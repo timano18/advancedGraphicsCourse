@@ -5,6 +5,7 @@ precision highp float;
 
 layout(location = 0) out vec4 fragmentColor;
 layout(binding = 6) uniform sampler2D environmentMap;
+layout(binding = 2) uniform sampler2D normalMap;
 in vec2 texCoord;
 uniform mat4 inv_PV;
 uniform vec3 camera_pos;
@@ -154,6 +155,8 @@ void main()
     n += 0.03125 * color(xyz.xy * 32.0 - 5.0 * step);
 
     fragmentColor.xyz = vec3(0.5 + 0.5 * vec3(n, n, n));
+	fragmentColor = texture(normalMap, texCoord);
+
 
 	//float noise = snoise(vec3(texCoord * 10 , 0.0));
 	//fragmentColor = vec4(noise, noise, noise, 1.0);
