@@ -18,7 +18,7 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 #include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
-using namespace glm;
+//using namespace glm;
 
 #include <Model.h>
 #include "hdr.h"
@@ -28,6 +28,12 @@ using namespace glm;
 #include "noise.h"
 #include "myHelper/shader_c.h"
 #include "myHelper/shader_s.h"
+
+
+
+
+
+#include <stb_image.h>
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -40,7 +46,7 @@ float deltaTime = 0.0f;
 int windowWidth, windowHeight;
 
 // Mouse input
-ivec2 g_prevMouseCoords = { -1, -1 };
+glm::ivec2 g_prevMouseCoords = { -1, -1 };
 bool g_isMouseDragging = false;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -48,6 +54,7 @@ bool g_isMouseDragging = false;
 ///////////////////////////////////////////////////////////////////////////////
 GLuint simpleShaderProgram;
 GLuint testShader;
+GLuint quadShader;
 
 
 
@@ -55,33 +62,39 @@ GLuint testShader;
 ///////////////////////////////////////////////////////////////////////////////
 // Light source
 ///////////////////////////////////////////////////////////////////////////////
-vec3 lightPosition = vec3(0.0f, 813.0f, 752.0f);
+glm::vec3 lightPosition = glm::vec3(0.0f, 813.0f, 752.0f);
 float sunangle = 0.0f;
-vec3 lightDirection;
+glm::vec3 lightDirection;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Camera parameters.
 ///////////////////////////////////////////////////////////////////////////////
-vec3 cameraPosition(-2659.0f, 4870.0f, -3135.0f);
-vec3 cameraDirection = normalize(vec3(0.0f) - cameraPosition);
+glm::vec3 cameraPosition(-2659.0f, 4870.0f, -3135.0f);
+glm::vec3 cameraDirection = glm::normalize(glm::vec3(0.0f) - cameraPosition);
+
+float farPlane = 2000000.0f;
+float nearPlane = 0.1f;
 
 // Camera speed
 float cameraSpeedBase = 100.f;
 float cameraSpeed = cameraSpeedBase;
 float shiftSpeed = 10.0;
 
-vec3 worldUp(0.0f, 1.0f, 0.0f);
+glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Models
 ///////////////////////////////////////////////////////////////////////////////
 labhelper::Model* sphereModel = nullptr;
 
-mat4 gridMatrix;
+glm::mat4 gridMatrix;
 int gridSize = 3000;
 float noiseScale = 0.01;
-
-
+float simpexScale = 2964;
+float worleyScale = 500;
+float simpexAmplitude = 1305;
+float worleyAmplitude = 100;
+float ratio = 1.0;
 
 
 void loadShaders(bool is_reload)
@@ -97,6 +110,13 @@ void loadShaders(bool is_reload)
 	{
 		testShader = shader;
 	}
+	shader = labhelper::loadShaderProgram("../project/background.vert", "../project/background.frag", is_reload);
+	if (shader != 0)
+	{
+		quadShader = shader;
+	}
+
+
 
 }
 
@@ -133,10 +153,10 @@ void debugDrawLight(const glm::mat4& viewMatrix,
                     const glm::mat4& projectionMatrix,
                     const glm::vec3& worldSpaceLightPos)
 {
-	mat4 modelMatrix = glm::translate(worldSpaceLightPos);
-	modelMatrix = glm::scale(modelMatrix, vec3(30.0f));
+	glm::mat4 modelMatrix = glm::translate(worldSpaceLightPos);
+	modelMatrix = glm::scale(modelMatrix, glm::vec3(30.0f));
 	glUseProgram(simpleShaderProgram);
-	labhelper::setUniformSlow(simpleShaderProgram, "material_color", vec3(1.0f, 1.0f, 0.0f));
+	labhelper::setUniformSlow(simpleShaderProgram, "material_color", glm::vec3(1.0f, 1.0f, 0.0f));
 
 	labhelper::setUniformSlow(simpleShaderProgram, "modelViewProjectionMatrix",
 	                          projectionMatrix * viewMatrix * modelMatrix);
@@ -241,10 +261,10 @@ bool handleEvents(void)
 			int delta_x = event.motion.x - g_prevMouseCoords.x;
 			int delta_y = event.motion.y - g_prevMouseCoords.y;
 			float rotationSpeed = 0.1f;
-			mat4 yaw = rotate(rotationSpeed * deltaTime * -delta_x, worldUp);
-			mat4 pitch = rotate(rotationSpeed * deltaTime * -delta_y,
+			glm::mat4 yaw = rotate(rotationSpeed * deltaTime * -delta_x, worldUp);
+			glm::mat4 pitch = rotate(rotationSpeed * deltaTime * -delta_y,
 			                    normalize(cross(cameraDirection, worldUp)));
-			cameraDirection = vec3(pitch * yaw * vec4(cameraDirection, 0.0f));
+			cameraDirection = glm::vec3(pitch * yaw * glm::vec4(cameraDirection, 0.0f));
 			g_prevMouseCoords.x = event.motion.x;
 			g_prevMouseCoords.y = event.motion.y;
 		}
@@ -252,7 +272,7 @@ bool handleEvents(void)
 
 	// check keyboard state (which keys are still pressed)
 	const uint8_t* state = SDL_GetKeyboardState(nullptr);
-	vec3 cameraRight = cross(cameraDirection, worldUp);
+	glm::vec3 cameraRight = cross(cameraDirection, worldUp);
 
 	if(state[SDL_SCANCODE_W])
 	{
@@ -280,11 +300,11 @@ bool handleEvents(void)
 	}
 	if (state[SDL_SCANCODE_RIGHT])
 	{
-		lightPosition += cameraSpeed * deltaTime * vec3(1.0f, 0.0, 0.0) / 2.0f;
+		lightPosition += cameraSpeed * deltaTime * glm::vec3(1.0f, 0.0, 0.0) / 2.0f;
 	}
 	if (state[SDL_SCANCODE_LEFT])
 	{
-		lightPosition -= cameraSpeed * deltaTime * vec3(1.0f, 0.0, 0.0) / 2.0f;
+		lightPosition -= cameraSpeed * deltaTime * glm::vec3(1.0f, 0.0, 0.0) / 2.0f;
 	}
 	if (state[SDL_SCANCODE_LSHIFT] == true)
 	{
@@ -327,8 +347,15 @@ void gui()
 	ImGui::Text("Camera Pos:  x: %.3f  y: %.3f  z: %.3f", cameraPosition.x, cameraPosition.y, cameraPosition.z);
 	ImGui::SliderFloat("Sun angle", &sunangle, 0.0f, 2.0f);
 	ImGui::Text("Light Direction:  x: %.3f  y: %.3f  z: %.3f", lightDirection.x, lightDirection.y, lightDirection.z);
-	ImGui::SliderFloat("NoiseScale", &noiseScale, 0.0f, 1500.0f);
+	ImGui::SliderFloat("simpexScale", &simpexScale, 0.1f, 3000.0f);
+	ImGui::SliderFloat("worleyScale", &worleyScale, 0.1f, 3000.0f);
+	ImGui::SliderFloat("simpexAmplitude", &simpexAmplitude, 0.1f, 3000.0f);
+	ImGui::SliderFloat("worleyAmplitude", &worleyAmplitude, 0.1f, 3000.0f);
+	ImGui::SliderFloat("ratio", &ratio, 0.0f, 1.0f);
 	ImGui::SliderInt("Grid Size", &gridSize, 10, 10000);
+	ImGui::SliderFloat("Far plane", &farPlane, 100.0f, 2000000.0f);
+	ImGui::SliderFloat("Near Plane", &nearPlane, 0.1f, 10000.0f);
+
 
 	// ----------------------------------------------------------
 
@@ -403,6 +430,8 @@ struct Vertex {
 
 int main(int argc, char* argv[])
 {
+	
+
 	g_window = labhelper::init_window_SDL("OpenGL Project");
 
 	
@@ -464,7 +493,7 @@ int main(int argc, char* argv[])
 	// createNewChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);				// Välj variabler
 	//initialChunk2.createNewChunk(0, 1, 3, 2, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, perlinScale, voronoiScale);						// Artificiellt lägre LoD. Måste ändra på filter-variablerna också för att det ska bli korrekt?
 
-	gridMatrix = mat4(1.0f);
+	gridMatrix = glm::mat4(1.0f);
 
 	gridMatrix = glm::rotate(gridMatrix, glm::radians(90.0f), glm::vec3(1, 0, 0));
 	gridMatrix = glm::translate(gridMatrix, glm::vec3(-gridWidth / 2.0f, -gridHeight / 2.0f, -1500.0f));
@@ -478,7 +507,7 @@ int main(int argc, char* argv[])
 	auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(stop - start);
 	std::cout << "Initial grid(s); generation time: " << duration.count() << std::endl;												// End clock, create inition chunks
 
-	
+
 	
 	std::cout << "After compute shader" << std::endl;
 	glBindBuffer(GL_ARRAY_BUFFER, grid.getVBO());
@@ -490,6 +519,32 @@ int main(int argc, char* argv[])
 			mappedVertices[i].normal.x, mappedVertices[i].normal.y, mappedVertices[i].normal.z);
 	}
 	glUnmapBuffer(GL_ARRAY_BUFFER);
+
+
+
+
+
+	// Testing to load normal map
+
+	unsigned int texture1;
+	int w, h, comp;
+	unsigned char* image = stbi_load("c:/test.jpg", &w, &h, &comp, STBI_rgb_alpha);
+	glGenTextures(1, &texture1);
+	glBindTexture(GL_TEXTURE_2D, texture1);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+	stbi_image_free(image);
+
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
+
+	
+
 
 	
 	// Start render-loop
@@ -516,30 +571,48 @@ int main(int argc, char* argv[])
 		glUseProgram(testShader); 
 		labhelper::setUniformSlow(testShader, "viewPos", cameraPosition);
 		labhelper::setUniformSlow(testShader, "lightDirection", lightDirection);
-		labhelper::setUniformSlow(testShader, "lightDiffuse", vec3(1.0f));
-		labhelper::setUniformSlow(testShader, "lightAmbient", vec3(0.1f));
-		labhelper::setUniformSlow(testShader, "lightSpecular", vec3(1.0f));
+		labhelper::setUniformSlow(testShader, "lightDiffuse", glm::vec3(1.0f));
+		labhelper::setUniformSlow(testShader, "lightAmbient", glm::vec3(0.1f));
+		labhelper::setUniformSlow(testShader, "lightSpecular", glm::vec3(1.0f));
 		labhelper::setUniformSlow(testShader, "materialShininess", (1.0f));
-		labhelper::setUniformSlow(testShader, "materialColor", vec3(1.0f, 0.0f, 0.0f));
+		//labhelper::setUniformSlow(testShader, "materialColor", vec3(1.0f, 0.0f, 0.0f));
+
+			// Different colours for different height levels
+		labhelper::setUniformSlow(testShader, "materialColor1", glm::vec3(0.0f, 1.0f, 0.0f)); // Gräs
+		labhelper::setUniformSlow(testShader, "materialColor2", glm::vec3(0.0f, 0.0f, 1.0f)); // Vatten
+		labhelper::setUniformSlow(testShader, "materialColor3", glm::vec3(0.5f, 0.5f, 0.5f)); // Lutning
+		labhelper::setUniformSlow(testShader, "materialColor4", glm::vec3(0.7f, 0.7f, 0.5f)); // Sand
+		labhelper::setUniformSlow(testShader, "materialColor5", glm::vec3(1.0f, 1.0f, 1.0f)); // Snö
 		
 
-		mat4 projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 0.1f, 2000000.0f);
-		mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
+		glm::mat4 projMatrix = glm::perspective(glm::radians(45.0f), float(windowWidth) / float(windowHeight), nearPlane, farPlane);
+		glm::mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
 		labhelper::setUniformSlow(testShader, "projection", projMatrix);
 		labhelper::setUniformSlow(testShader, "view", viewMatrix);
 		labhelper::setUniformSlow(testShader, "model", gridMatrix);
 		grid.DrawGrid();
 	
+
 		computeShader.use();
 		computeShader.setInt("size", gridSize);
-		computeShader.setFloat("noiseScale", noiseScale);
+		computeShader.setFloat("simpexScale", simpexScale);
+		computeShader.setFloat("worleyScale", worleyScale);
+		computeShader.setFloat("simpexAmplitude", simpexAmplitude);
+		computeShader.setFloat("worleyAmplitude", worleyAmplitude);
+		computeShader.setFloat("ratio", ratio);
+		
 		// SSBO for computeshader
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, grid.getVBO());
-		glDispatchCompute(576, 1, 1);
+		glDispatchCompute(57600, 1, 1);
 
 
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
-
+		/*
+		glUseProgram(quadShader);
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, texture1);
+		labhelper::drawFullScreenQuad();
+		*/
 		// render image to quad
 		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		//glUseProgram(screenQuad);
