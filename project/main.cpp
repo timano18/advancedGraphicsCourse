@@ -66,6 +66,11 @@ glm::vec3 lightPosition = glm::vec3(0.0f, 813.0f, 752.0f);
 float sunangle = 0.0f;
 glm::vec3 lightDirection;
 
+
+
+int skyWidth = 5000;
+int skyHeight = 5000;
+
 ///////////////////////////////////////////////////////////////////////////////
 // Camera parameters.
 ///////////////////////////////////////////////////////////////////////////////
@@ -470,7 +475,7 @@ int main(int argc, char* argv[])
 	// Build and compile shaders
 	ComputeShader computeShader("../project/simpleComputeShader.glsl");
 
-
+	ComputeShader skyComputeShader("../project/skyComputeShader.glsl");
 
 
 
@@ -546,6 +551,37 @@ int main(int argc, char* argv[])
 	
 
 
+	// Create empty skyTexture
+	unsigned int texture;
+
+	glGenTextures(1, &texture);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, skyWidth, skyHeight, 0, GL_RGBA, GL_FLOAT, NULL);
+
+	glBindImageTexture(0, texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	// Create empty cubemap
+	GLuint envCubeMap;
+	glGenTextures(1, &envCubeMap);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, envCubeMap);
+
+	for (GLuint i = 0; i < 6; ++i) {
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA32F, skyWidth, skyHeight, 0, GL_RGBA, GL_FLOAT, nullptr);
+	}
+
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 	
 	// Start render-loop
 	while(!stopRendering)
@@ -607,6 +643,24 @@ int main(int argc, char* argv[])
 
 
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+		skyComputeShader.use();
+		skyComputeShader.setFloat("t", currentTime);
+		skyComputeShader.setVec3("sunAngle", rotateSun(sunangle));
+		skyComputeShader.setMat4("invProjectionMatrix", (projMatrix));
+		skyComputeShader.setMat4("viewMatrix", viewMatrix);
+		glDispatchCompute((unsigned int)skyWidth / 10, (unsigned int)skyHeight / 10, 1);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		glUseProgram(quadShader);
+		//labhelper::setUniformSlow(quadShader, "environment_multiplier", environment_multiplier);
+		labhelper::setUniformSlow(quadShader, "inv_PV", inverse(projMatrix * viewMatrix));
+		labhelper::setUniformSlow(quadShader, "camera_pos", cameraPosition);
+		labhelper::drawFullScreenQuad();
+
+
+
 		/*
 		glUseProgram(quadShader);
 		glActiveTexture(GL_TEXTURE2);

@@ -124,7 +124,7 @@ float color(vec2 xy) { return 0.7 * snoise(vec3(xy, 0.3*0)); }
 
 void main()
 {
-/*
+
 	// Calculate the world-space position of this fragment on the near plane
 	vec4 pixel_world_pos = inv_PV * vec4(texCoord * 2.0 - 1.0, 1.0, 1.0);
 	pixel_world_pos = (1.0 / pixel_world_pos.w) * pixel_world_pos;
@@ -138,7 +138,8 @@ void main()
 	// Use these to lookup the color in the environment map
 	vec2 lookup = vec2(phi / (2.0 * PI), theta / PI);
 	fragmentColor = environment_multiplier * texture(environmentMap, lookup);
-*/
+
+	
     //vec2 p = (fragCoord.xy/720) * 2.0 - 1.0;
 
     //vec3 xyz = vec3(p, 0);
@@ -154,7 +155,7 @@ void main()
     n += 0.0625 * color(xyz.xy * 16.0 - 4.0 * step);
     n += 0.03125 * color(xyz.xy * 32.0 - 5.0 * step);
 
-    fragmentColor.xyz = vec3(0.5 + 0.5 * vec3(n, n, n));
+    //fragmentColor.xyz = vec3(0.5 + 0.5 * vec3(n, n, n));
 	fragmentColor = texture(normalMap, texCoord);
 
 
