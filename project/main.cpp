@@ -424,7 +424,6 @@ int main(int argc, char* argv[])
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
-	// FRAMEBUFFERS
 	// REFLECTION
 	unsigned int reflectionFBO;
 	glGenFramebuffers(1, &reflectionFBO);
@@ -589,23 +588,8 @@ int main(int argc, char* argv[])
 
 
 		//Update screen size
-		glBindRenderbuffer(GL_RENDERBUFFER, reflectionRBO);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, windowWidth, windowHeight);
-		glBindRenderbuffer(GL_RENDERBUFFER, 0);
+			// FRAMEBUFFERS
 
-		glBindTexture(GL_TEXTURE_2D, refractionTextureDepthbuffer);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, windowWidth, windowHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
-
-		glBindRenderbuffer(GL_RENDERBUFFER, refractionRBO);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, windowWidth, windowHeight);
-		glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-		glBindTexture(GL_TEXTURE_2D, refractionTextureColorbuffer);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-		glBindTexture(GL_TEXTURE_2D, refractionTextureDepthbuffer);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, windowWidth, windowHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
 		// *** SETUP ***
 		//update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
@@ -670,6 +654,17 @@ int main(int argc, char* argv[])
 
 		// ground, reflection (water)
 		glBindFramebuffer(GL_FRAMEBUFFER, reflectionFBO);
+		glBindTexture(GL_TEXTURE_2D, reflectionTextureColorbuffer);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+		glBindRenderbuffer(GL_RENDERBUFFER, reflectionFBO);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, windowWidth, windowHeight);
+
+		glBindTexture(GL_TEXTURE_2D, refractionTextureColorbuffer);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+		glBindTexture(GL_TEXTURE_2D, refractionTextureDepthbuffer);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, windowWidth, windowHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+		glBindRenderbuffer(GL_RENDERBUFFER, refractionFBO);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, windowWidth, windowHeight);
 
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
