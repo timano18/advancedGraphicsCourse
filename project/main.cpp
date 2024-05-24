@@ -373,7 +373,7 @@ int main(int argc, char* argv[])
 	// createNewStandardChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd);																	// Standard (värden i grid.cpp)
 	//initialChunk1.createNewStandardChunk(0, 0, 1, 1, -500);
 	// createNewChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);				// Välj variabler
-	initialChunk2.createNewChunk(0, 0, 1, 1, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, 900, perlinScale, voronoiScale);				// Artificiellt lägre LoD. Måste ändra på filter-variablerna också för att det ska bli korrekt?
+	initialChunk2.createNewChunk(0, 0, 2, 2, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, 900, perlinScale, voronoiScale);				// Artificiellt lägre LoD. Måste ändra på filter-variablerna också för att det ska bli korrekt?
 
 	// Ocean
 	initialChunk3.createNewChunk(0, 0, 1, 1, 2, 2, 2400, 50, 0, 0);
@@ -481,25 +481,89 @@ int main(int argc, char* argv[])
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, refractionTextureDepthbuffer, 0);
 
 	// Load DUDVmap
-	unsigned int DUDVtexture;
-	glGenTextures(1, &DUDVtexture);
-	glBindTexture(GL_TEXTURE_2D, DUDVtexture);
+	unsigned int DUDVTexture;
+	glGenTextures(1, &DUDVTexture);
+	glBindTexture(GL_TEXTURE_2D, DUDVTexture);
 
-	int DUDVwidth, DUDVheight, DUDVnrChannels;
-	unsigned char *DUDVdata = stbi_load("../textures/water/waterDUDV.png", &DUDVwidth, &DUDVheight, &DUDVnrChannels, 0);
+	int DUDVWidth, DUDVHeight, DUDVNrChannels;
+	unsigned char *DUDVData = stbi_load("../textures/water/waterDUDV.png", &DUDVWidth, &DUDVHeight, &DUDVNrChannels, 0);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, DUDVwidth, DUDVheight, 0, GL_RGB, GL_UNSIGNED_BYTE, DUDVdata);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, DUDVWidth, DUDVHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, DUDVData);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	// Load Normalmap
-	unsigned int Normaltexture;
-	glGenTextures(1, &Normaltexture);
-	glBindTexture(GL_TEXTURE_2D, Normaltexture);
+	unsigned int NormalTexture;
+	glGenTextures(1, &NormalTexture);
+	glBindTexture(GL_TEXTURE_2D, NormalTexture);
 
-	int Normalwidth, Normalheight, NormalnrChannels;
-	unsigned char* Normaldata = stbi_load("../textures/water/waterNormal.png", &Normalwidth, &Normalheight, &NormalnrChannels, 0);
+	int NormalWidth, NormalHeight, NormalNrChannels;
+	unsigned char* NormalData = stbi_load("../textures/water/waterNormal.png", &NormalWidth, &NormalHeight, &NormalNrChannels, 0);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Normalwidth, Normalheight, 0, GL_RGB, GL_UNSIGNED_BYTE, Normaldata);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, NormalWidth, NormalHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NormalData);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// Load "Grass"
+	unsigned int GrassTexture;
+	glGenTextures(1, &GrassTexture);
+	glBindTexture(GL_TEXTURE_2D, GrassTexture);
+
+	int GrassWidth, GrassHeight, GrassNrChannels;
+	unsigned char* GrassData = stbi_load("../textures/land/testGrass_small.png", &GrassWidth, &GrassHeight, &GrassNrChannels, 0);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, GrassWidth, GrassHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, GrassData);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// Load "Stone"
+	unsigned int StoneTexture;
+	glGenTextures(1, &StoneTexture);
+	glBindTexture(GL_TEXTURE_2D, StoneTexture);
+
+	int StoneWidth, StoneHeight, StoneNrChannels;
+	unsigned char* StoneData = stbi_load("../textures/land/testStone_small.png", &StoneWidth, &StoneHeight, &StoneNrChannels, 0);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, StoneWidth, StoneHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, StoneData);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// Load "Sand"
+	unsigned int SandTexture;
+	glGenTextures(1, &SandTexture);
+	glBindTexture(GL_TEXTURE_2D, SandTexture);
+
+	int SandWidth, SandHeight, SandNrChannels;
+	unsigned char* SandData = stbi_load("../textures/land/testSand_small.png", &SandWidth, &SandHeight, &SandNrChannels, 0);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SandWidth, SandHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, SandData);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// Load "Snow"
+	unsigned int SnowTexture;
+	glGenTextures(1, &SnowTexture);
+	glBindTexture(GL_TEXTURE_2D, SnowTexture);
+
+	int SnowWidth, SnowHeight, SnowNrChannels;
+	unsigned char* SnowData = stbi_load("../textures/land/testSnow_small.png", &SnowWidth, &SnowHeight, &SnowNrChannels, 0);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SnowWidth, SnowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, SnowData);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	// VARIABLES
@@ -571,12 +635,6 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(testShader, "lightSpecular", vec3(1.0f));
 		labhelper::setUniformSlow(testShader, "materialShininess", (1.0f));
 
-		labhelper::setUniformSlow(testShader, "materialColor1", vec3(0.0f, 1.0f, 0.0f)); // Gräs
-		labhelper::setUniformSlow(testShader, "materialColor2", vec3(0.0f, 0.0f, 1.0f)); // Vatten
-		labhelper::setUniformSlow(testShader, "materialColor3", vec3(0.5f, 0.5f, 0.5f)); // Lutning
-		labhelper::setUniformSlow(testShader, "materialColor4", vec3(0.7f, 0.7f, 0.5f)); // Sand
-		labhelper::setUniformSlow(testShader, "materialColor5", vec3(1.0f, 1.0f, 1.0f)); // Snö
-
 		labhelper::setUniformSlow(testShader, "model", gridMatrix);
 		labhelper::setUniformSlow(testShader, "waterPlaneHeight", waterHeight); // Height if the water plane (default 0.0)
 		labhelper::setUniformSlow(testShader, "waterPlaneDirection", 1.0f); // 1 = cull > height, -1 = cull < height
@@ -617,6 +675,16 @@ int main(int argc, char* argv[])
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
 		glUseProgram(testShader);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, GrassTexture);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, StoneTexture);
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, SandTexture);
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, SnowTexture);
+
 		labhelper::setUniformSlow(testShader, "waterPlaneDirection", -1.0f);
 
 		// Change camera for the reflection
@@ -647,16 +715,18 @@ int main(int argc, char* argv[])
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glUseProgram(testShader);
+
 		labhelper::setUniformSlow(testShader, "waterPlaneDirection", 1.0f);
 		initialChunk2.DrawGridChunk();
 
 
 		// Draw scene
-		
+		// 
 		// ground
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		glUseProgram(testShader);
+
 		labhelper::setUniformSlow(testShader, "waterPlaneDirection", 0.0f);
 		initialChunk2.DrawGridChunk();
 
@@ -670,9 +740,9 @@ int main(int argc, char* argv[])
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, refractionTextureColorbuffer);
 		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, DUDVtexture);
+		glBindTexture(GL_TEXTURE_2D, DUDVTexture);
 		glActiveTexture(GL_TEXTURE3);
-		glBindTexture(GL_TEXTURE_2D, Normaltexture);
+		glBindTexture(GL_TEXTURE_2D, NormalTexture);
 		glActiveTexture(GL_TEXTURE4);
 		glBindTexture(GL_TEXTURE_2D, refractionTextureDepthbuffer);
 

@@ -81,6 +81,7 @@ GridChunk::GridChunk(int xStartPos_Chunk, int yStartPos_Chunk, int xEndPos_Chunk
 // generateGrid method implementation
 void Grid::generateGrid()
 {
+	float numTextures = 16.0f;
 
 	// Positions for the loops (start/stop coords.)
 	int startX = m_xStartPos;
@@ -107,6 +108,8 @@ void Grid::generateGrid()
 			Vertex vertex;
 			vertex.position = glm::vec3(j * m_cellSize, i * m_cellSize, z);
 			vertex.normal = glm::vec3(0.0f, 0.0f, 0.0f);  // Ensure the normal is initialized to zero
+			vertex.texCoords = glm::vec3((float)j/ (float)(m_height / numTextures), (float)i/ (float)(m_width / numTextures), 0.0f);
+			//std::cout << (float)j / (m_height / numTextures) << " & " << (float)i / (float)(m_width / numTextures) << '\n';
 			vertices.push_back(vertex);
 
 		}
@@ -171,6 +174,10 @@ void Grid::generateGrid()
 	// Normal attribute
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, normal)));
 	glEnableVertexAttribArray(1);
+
+	// TexCoords attribute
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, texCoords)));
+	glEnableVertexAttribArray(2);
 
 	glBindVertexArray(0);
 }

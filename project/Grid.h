@@ -16,6 +16,7 @@ private:
 	struct Vertex {
 		glm::vec3 position;
 		glm::vec3 normal;
+		glm::vec3 texCoords;
 	};
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
