@@ -31,7 +31,7 @@ float reflectivity = 1.0;
 float depthWeight = 250.0;
 
 // Near and far planes (KOLLA SÅ DESSA ÄR RÄTT!)
-float nearPlane = 0.1f;
+float nearPlane = 10.1f;
 float farPlane = 2000000.0f;
 
 // Calculate normals

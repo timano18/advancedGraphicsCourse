@@ -607,7 +607,7 @@ int main(int argc, char* argv[])
 		mat4 viewMatrix;
 
 		// *** LOAD DEFAULT VALUES TO SHADERS ***
-		projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 0.1f, 2000000.0f);
+		projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 10.1f, 2000000.0f);
 		viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
 		
 		// test shader
@@ -688,7 +688,7 @@ int main(int argc, char* argv[])
 		cameraPosition = {cameraPosition.x, cameraPosition.y - cameraDistance, cameraPosition.z};
 		cameraDirection.y = -cameraDirection.y;
 		labhelper::setUniformSlow(testShader, "viewPos", cameraPosition);
-		projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 0.1f, 2000000.0f); // 0.1f, 2000000.0f near/far plane
+		projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 10.1f, 2000000.0f); // 0.1f, 2000000.0f near/far plane
 		viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
 		labhelper::setUniformSlow(testShader, "projection", projMatrix);
 		labhelper::setUniformSlow(testShader, "view", viewMatrix);
@@ -698,7 +698,7 @@ int main(int argc, char* argv[])
 		cameraPosition = { cameraPosition.x, cameraPosition.y + cameraDistance, cameraPosition.z};
 		cameraDirection.y = -cameraDirection.y;
 		labhelper::setUniformSlow(testShader, "viewPos", cameraPosition);
-		projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 0.1f, 2000000.0f);
+		projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 10.1f, 2000000.0f);
 		viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
 		labhelper::setUniformSlow(testShader, "projection", projMatrix);
 		labhelper::setUniformSlow(testShader, "view", viewMatrix);
