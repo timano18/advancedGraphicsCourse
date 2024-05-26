@@ -328,7 +328,7 @@ float calculateZ(vec2 pos) {
 }
 
 void main() {
-	float cellsize = 10.0;
+	float cellsize = 1.0;
 	
 	
 

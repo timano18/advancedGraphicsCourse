@@ -457,6 +457,78 @@ struct Vertex {
 	glm::vec3 normal;
 };
 
+unsigned int GrassTexture;
+unsigned int StoneTexture;
+unsigned int SandTexture;
+unsigned int SnowTexture;
+
+void loadTextures()
+{
+	// Load "Grass"
+
+	glGenTextures(1, &GrassTexture);
+	glBindTexture(GL_TEXTURE_2D, GrassTexture);
+
+	int GrassWidth, GrassHeight, GrassNrChannels;
+	unsigned char* GrassData = stbi_load("../textures/land/testGrass_small.png", &GrassWidth, &GrassHeight, &GrassNrChannels, 0);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, GrassWidth, GrassHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, GrassData);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// Load "Stone"
+
+	glGenTextures(1, &StoneTexture);
+	glBindTexture(GL_TEXTURE_2D, StoneTexture);
+
+	int StoneWidth, StoneHeight, StoneNrChannels;
+	unsigned char* StoneData = stbi_load("../textures/land/testStone_small.png", &StoneWidth, &StoneHeight, &StoneNrChannels, 0);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, StoneWidth, StoneHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, StoneData);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// Load "Sand"
+
+	glGenTextures(1, &SandTexture);
+	glBindTexture(GL_TEXTURE_2D, SandTexture);
+
+	int SandWidth, SandHeight, SandNrChannels;
+	unsigned char* SandData = stbi_load("../textures/land/testSand_small.png", &SandWidth, &SandHeight, &SandNrChannels, 0);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SandWidth, SandHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, SandData);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// Load "Snow"
+
+	glGenTextures(1, &SnowTexture);
+	glBindTexture(GL_TEXTURE_2D, SnowTexture);
+
+	int SnowWidth, SnowHeight, SnowNrChannels;
+	unsigned char* SnowData = stbi_load("../textures/land/testSnow_small.png", &SnowWidth, &SnowHeight, &SnowNrChannels, 0);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SnowWidth, SnowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, SnowData);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glGenerateMipmap(GL_TEXTURE_2D);
+}
+
 
 int main(int argc, char* argv[])
 {
@@ -567,23 +639,7 @@ int main(int argc, char* argv[])
 
 	
 	// Textures
-
-
-	// Load "Grass"
-	unsigned int GrassTexture;
-	glGenTextures(1, &GrassTexture);
-	glBindTexture(GL_TEXTURE_2D, GrassTexture);
-
-	int GrassWidth, GrassHeight, GrassNrChannels;
-	unsigned char* GrassData = stbi_load("../textures/land/testGrass_small.png", &GrassWidth, &GrassHeight, &GrassNrChannels, 0);
-
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, GrassWidth, GrassHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, GrassData);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-	glGenerateMipmap(GL_TEXTURE_2D);
+	loadTextures();
 
 
 
@@ -645,15 +701,12 @@ int main(int argc, char* argv[])
 		
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GrassTexture);
-		/*
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, StoneTexture);
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, SandTexture);
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, SnowTexture);
-		*/
-	
 		
 
 		glm::mat4 projMatrix = glm::perspective(glm::radians(45.0f), float(windowWidth) / float(windowHeight), nearPlane, farPlane);
