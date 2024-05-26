@@ -34,6 +34,12 @@ layout(std430, binding = 0) buffer VertexBuffer {
 	Vertex vertices[];
 };
 
+layout(std430, binding = 1) buffer VertexFollowBuffer {
+
+	vec3 vertexFollow;
+};
+
+
 
 // ----------------------------------------------------------------------------
 //
@@ -324,6 +330,8 @@ float calculateZ(vec2 pos) {
 void main() {
 	float cellsize = 10.0;
 	
+	
+
     uint idx = gl_GlobalInvocationID.x;
  	vertices[idx].positionX += (translation.x * cellsize);
     vertices[idx].positionY += (translation.y * cellsize);
@@ -331,7 +339,7 @@ void main() {
 	vertices[idx].positionZ = calculateZ(vec2(vertices[idx].positionX, vertices[idx].positionY));
 	//vertices[idx].positionZ += 30;
 
-	
+	vertexFollow = vec3(vertices[0].positionX, vertices[0].positionY, vertices[0].positionZ);
 
     //vertices[idx].positionZ += translation.z;
 

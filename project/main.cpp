@@ -553,6 +553,16 @@ int main(int argc, char* argv[])
 
 
 
+
+
+	// Buffer for vertexFollow
+	GLuint ssbo;
+	glGenBuffers(1, &ssbo);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::vec3), NULL, GL_DYNAMIC_COPY);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
 	
 	// Start render-loop
 	while (!stopRendering)
@@ -561,15 +571,26 @@ int main(int argc, char* argv[])
 		// Combine the initial rotation with the new position
 		//gridMatrix = initialRotation; // Reset to initial rotation
 		//gridMatrix = glm::translate(gridMatrix, position); // Apply new translation
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+		glm::vec3* ptr = (glm::vec3*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::vec3), GL_MAP_READ_BIT);
 
+		if (ptr) {
+			vertexFollow = *ptr;
+			glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+		}
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+		/*
 
 		glBindBuffer(GL_ARRAY_BUFFER, grid.getVBO());
 		mappedVertices = (Vertex*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
 	
 		glUnmapBuffer(GL_ARRAY_BUFFER);
-
 		vertexFollow = (mappedVertices[0].position);
-		cameraPosition = glm::vec3(vertexFollow.x, cameraPosition.y, vertexFollow.y);
+		*/
+
+		cameraPosition = glm::vec3(vertexFollow.x + 1200.0f, cameraPosition.y, vertexFollow.y + 1200.0f);
 		//update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
 		previousTime = currentTime;
