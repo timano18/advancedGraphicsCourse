@@ -569,7 +569,7 @@ int main(int argc, char* argv[])
 		glUnmapBuffer(GL_ARRAY_BUFFER);
 
 		vertexFollow = (mappedVertices[0].position);
-		cameraPosition = glm::vec3(vertexFollow.x, vertexFollow.z, cameraPosition.z);
+		cameraPosition = glm::vec3(vertexFollow.x, cameraPosition.y, vertexFollow.y);
 		//update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
 		previousTime = currentTime;
