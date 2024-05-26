@@ -100,6 +100,7 @@ float ratio = 1.0;
 float gridZ = -1500.0f;
 glm::vec3 gridSpeed;
 
+glm::vec3 vertexFollow;
 void loadShaders(bool is_reload)
 {
 	GLuint shader = labhelper::loadShaderProgram("../project/simple.vert", "../project/simple.frag", is_reload);
@@ -308,23 +309,23 @@ bool handleEvents(void)
 		if (state[SDL_SCANCODE_A])
 		{
 			gridSpeed = -glm::vec3(cameraRight.x, cameraRight.z, 0) * (cameraSpeed/100.0f);
-			cameraPosition -= cameraSpeed * deltaTime * cameraRight;
+			//cameraPosition -= cameraSpeed * deltaTime * cameraRight;
 	
 		}
 		else if (state[SDL_SCANCODE_D])
 		{
 			gridSpeed = glm::vec3(cameraRight.x, cameraRight.z, 0) * (cameraSpeed / 100.0f);
-			cameraPosition += cameraSpeed * deltaTime * cameraRight;
+			//cameraPosition += cameraSpeed * deltaTime * cameraRight;
 		}
 		else if (state[SDL_SCANCODE_W])
 		{
 			gridSpeed = glm::vec3(cameraDirection.x, cameraDirection.z, 0) * (cameraSpeed / 100.0f);
-			cameraPosition += cameraSpeed * deltaTime * cameraDirection;
+			//cameraPosition += cameraSpeed * deltaTime * cameraDirection;
 		}
 		else if (state[SDL_SCANCODE_S])
 		{
 			gridSpeed = -glm::vec3(cameraDirection.x, cameraDirection.z, 0) * (cameraSpeed / 100.0f);
-			cameraPosition -= cameraSpeed * deltaTime * cameraDirection;
+			//cameraPosition -= cameraSpeed * deltaTime * cameraDirection;
 		}
 	}
 	else
@@ -332,7 +333,7 @@ bool handleEvents(void)
 		gridSpeed = glm::vec3(0.0);
 	}
 
-	/*
+	
 	if (state[SDL_SCANCODE_RIGHT] || state[SDL_SCANCODE_LEFT] ||
 		state[SDL_SCANCODE_UP] || state[SDL_SCANCODE_DOWN])
 	{
@@ -357,7 +358,7 @@ bool handleEvents(void)
 	{
 		gridSpeed = glm::vec3(0.0);
 	}
-	*/
+	
 	
 	if (state[SDL_SCANCODE_LSHIFT] == true)
 	{
@@ -400,6 +401,7 @@ void gui()
 	ImGui::Text("Camera Pos:  x: %.3f  y: %.3f  z: %.3f", cameraPosition.x, cameraPosition.y, cameraPosition.z);
 	ImGui::Text("Camera Dir:  x: %.3f  y: %.3f  z: %.3f", cameraDirection.x, cameraDirection.y, cameraDirection.z);
 	ImGui::Text("Grid Pos:  x: %.3f  y: %.3f  z: %.3f", gridSpeed.x, gridSpeed.y, gridSpeed.z);
+	ImGui::Text("Vertex Follow:  x: %.3f  y: %.3f  z: %.3f", vertexFollow.x, vertexFollow.y, vertexFollow.z);
 	ImGui::SliderFloat("Sun angle", &sunangle, 0.0f, 2.0f);
 	ImGui::Text("Light Direction:  x: %.3f  y: %.3f  z: %.3f", lightDirection.x, lightDirection.y, lightDirection.z);
 	ImGui::SliderFloat("simpexScale", &simpexScale, 0.1f, 3000.0f);
@@ -553,7 +555,7 @@ int main(int argc, char* argv[])
 
 	
 	// Start render-loop
-	while(!stopRendering)
+	while (!stopRendering)
 	{
 		//position.x = cameraPosition.x;
 		// Combine the initial rotation with the new position
@@ -561,8 +563,13 @@ int main(int argc, char* argv[])
 		//gridMatrix = glm::translate(gridMatrix, position); // Apply new translation
 
 
-		
+		glBindBuffer(GL_ARRAY_BUFFER, grid.getVBO());
+		mappedVertices = (Vertex*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
+	
+		glUnmapBuffer(GL_ARRAY_BUFFER);
 
+		vertexFollow = (mappedVertices[0].position);
+		cameraPosition = glm::vec3(vertexFollow.x, cameraPosition.y, vertexFollow.y);
 		//update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
 		previousTime = currentTime;
