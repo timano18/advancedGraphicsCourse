@@ -69,8 +69,8 @@ glm::vec3 lightDirection;
 ///////////////////////////////////////////////////////////////////////////////
 // Camera parameters.
 ///////////////////////////////////////////////////////////////////////////////
-glm::vec3 cameraPosition(-2659.0f, 4870.0f, -3135.0f);
-glm::vec3 cameraDirection = glm::normalize(glm::vec3(0.0f) - cameraPosition);
+glm::vec3 cameraPosition(-0.1f, 130.0f, -0.1f);
+glm::vec3 cameraDirection = glm::normalize(glm::vec3(199.0f, 80.0f, 327.0f) - cameraPosition);
 
 float farPlane = 2000000.0f;
 float nearPlane = 0.1f;
@@ -96,6 +96,9 @@ float simpexAmplitude = 1305;
 float worleyAmplitude = 100;
 float ratio = 1.0;
 
+
+float gridZ = -1500.0f;
+glm::vec3 gridSpeed;
 
 void loadShaders(bool is_reload)
 {
@@ -273,7 +276,7 @@ bool handleEvents(void)
 	// check keyboard state (which keys are still pressed)
 	const uint8_t* state = SDL_GetKeyboardState(nullptr);
 	glm::vec3 cameraRight = cross(cameraDirection, worldUp);
-
+	/*
 	if(state[SDL_SCANCODE_W])
 	{
 		cameraPosition += cameraSpeed * deltaTime * cameraDirection;
@@ -285,11 +288,12 @@ bool handleEvents(void)
 	if(state[SDL_SCANCODE_A])
 	{
 		cameraPosition -= cameraSpeed * deltaTime * cameraRight;
-	}
+	}	
 	if(state[SDL_SCANCODE_D])
 	{
 		cameraPosition += cameraSpeed * deltaTime * cameraRight;
 	}
+	*/
 	if(state[SDL_SCANCODE_Q])
 	{
 		cameraPosition -= cameraSpeed * deltaTime * worldUp;
@@ -298,14 +302,63 @@ bool handleEvents(void)
 	{
 		cameraPosition += cameraSpeed * deltaTime * worldUp;
 	}
-	if (state[SDL_SCANCODE_RIGHT])
+	if (state[SDL_SCANCODE_A] || state[SDL_SCANCODE_D] ||
+		state[SDL_SCANCODE_W] || state[SDL_SCANCODE_S])
 	{
-		lightPosition += cameraSpeed * deltaTime * glm::vec3(1.0f, 0.0, 0.0) / 2.0f;
+		if (state[SDL_SCANCODE_A])
+		{
+			gridSpeed = -glm::vec3(cameraRight.x, cameraRight.z, 0) * (cameraSpeed/100.0f);
+			cameraPosition -= cameraSpeed * deltaTime * cameraRight;
+	
+		}
+		else if (state[SDL_SCANCODE_D])
+		{
+			gridSpeed = glm::vec3(cameraRight.x, cameraRight.z, 0) * (cameraSpeed / 100.0f);
+			cameraPosition += cameraSpeed * deltaTime * cameraRight;
+		}
+		else if (state[SDL_SCANCODE_W])
+		{
+			gridSpeed = glm::vec3(cameraDirection.x, cameraDirection.z, 0) * (cameraSpeed / 100.0f);
+			cameraPosition += cameraSpeed * deltaTime * cameraDirection;
+		}
+		else if (state[SDL_SCANCODE_S])
+		{
+			gridSpeed = -glm::vec3(cameraDirection.x, cameraDirection.z, 0) * (cameraSpeed / 100.0f);
+			cameraPosition -= cameraSpeed * deltaTime * cameraDirection;
+		}
 	}
-	if (state[SDL_SCANCODE_LEFT])
+	else
 	{
-		lightPosition -= cameraSpeed * deltaTime * glm::vec3(1.0f, 0.0, 0.0) / 2.0f;
+		gridSpeed = glm::vec3(0.0);
 	}
+
+	/*
+	if (state[SDL_SCANCODE_RIGHT] || state[SDL_SCANCODE_LEFT] ||
+		state[SDL_SCANCODE_UP] || state[SDL_SCANCODE_DOWN])
+	{
+		if (state[SDL_SCANCODE_RIGHT])
+		{
+			gridSpeed.y = 1.0;
+		}
+		if (state[SDL_SCANCODE_LEFT])
+		{
+			gridSpeed.y = -1.0;
+		}
+		if (state[SDL_SCANCODE_UP])
+		{
+			gridSpeed.x = 1.0;
+		}
+		if (state[SDL_SCANCODE_DOWN])
+		{
+			gridSpeed.x = -1.0;
+		}
+	}
+	else
+	{
+		gridSpeed = glm::vec3(0.0);
+	}
+	*/
+	
 	if (state[SDL_SCANCODE_LSHIFT] == true)
 	{
 		cameraSpeed = cameraSpeedBase * shiftSpeed;
@@ -345,6 +398,8 @@ void gui()
 	ImGui::SliderFloat("Light pos y", &lightPosition.y, -10000.0f, 10000.0f);
 	ImGui::SliderFloat("Light pos z", &lightPosition.z, -10000.0f, 10000.0f);
 	ImGui::Text("Camera Pos:  x: %.3f  y: %.3f  z: %.3f", cameraPosition.x, cameraPosition.y, cameraPosition.z);
+	ImGui::Text("Camera Dir:  x: %.3f  y: %.3f  z: %.3f", cameraDirection.x, cameraDirection.y, cameraDirection.z);
+	ImGui::Text("Grid Pos:  x: %.3f  y: %.3f  z: %.3f", gridSpeed.x, gridSpeed.y, gridSpeed.z);
 	ImGui::SliderFloat("Sun angle", &sunangle, 0.0f, 2.0f);
 	ImGui::Text("Light Direction:  x: %.3f  y: %.3f  z: %.3f", lightDirection.x, lightDirection.y, lightDirection.z);
 	ImGui::SliderFloat("simpexScale", &simpexScale, 0.1f, 3000.0f);
@@ -355,6 +410,7 @@ void gui()
 	ImGui::SliderInt("Grid Size", &gridSize, 10, 10000);
 	ImGui::SliderFloat("Far plane", &farPlane, 100.0f, 2000000.0f);
 	ImGui::SliderFloat("Near Plane", &nearPlane, 0.1f, 10000.0f);
+
 
 
 	// ----------------------------------------------------------
@@ -392,36 +448,7 @@ void computeShaderSetupQuery()
 	std::cout << "Number of invocations in a single local work group that may be dispatched to a compute shader " << max_compute_work_group_invocations << std::endl;
 }
 
-// renderQuad() renders a 1x1 XY quad in NDC
-// -----------------------------------------
-unsigned int quadVAO = 0;
-unsigned int quadVBO;
-void renderQuad()
-{
-	if (quadVAO == 0)
-	{
-		float quadVertices[] = {
-			// positions        // texture Coords
-			-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
-			-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-			 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-			 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-		};
-		// setup plane VAO
-		glGenVertexArrays(1, &quadVAO);
-		glGenBuffers(1, &quadVBO);
-		glBindVertexArray(quadVAO);
-		glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-	}
-	glBindVertexArray(quadVAO);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	glBindVertexArray(0);
-}
+
 
 struct Vertex {
 	glm::vec3 position;
@@ -495,12 +522,14 @@ int main(int argc, char* argv[])
 
 	gridMatrix = glm::mat4(1.0f);
 
-	gridMatrix = glm::rotate(gridMatrix, glm::radians(90.0f), glm::vec3(1, 0, 0));
-	gridMatrix = glm::translate(gridMatrix, glm::vec3(-gridWidth / 2.0f, -gridHeight / 2.0f, -1500.0f));
+	//gridMatrix = glm::rotate(gridMatrix, glm::radians(90.0f), glm::vec3(1, 0, 0));
+	//gridMatrix = glm::translate(gridMatrix, glm::vec3(-gridWidth / 2.0f, -gridHeight / 2.0f, -1500.0f));
 	
 	//cameraPosition = glm::vec3(gridMatrix[3]);
 
-	
+	gridSpeed = glm::vec3(0.0f, 0.0f, 0.0f); // Grid position
+	glm::mat4 initialRotation = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(90.0f, 0.0f, 0.0f)); // Example rotation
+	gridMatrix = initialRotation; // Applying initial rotation
 
 
 	auto stop = std::chrono::high_resolution_clock::now();
@@ -522,34 +551,17 @@ int main(int argc, char* argv[])
 
 
 
-
-
-	// Testing to load normal map
-
-	unsigned int texture1;
-	int w, h, comp;
-	unsigned char* image = stbi_load("c:/test.jpg", &w, &h, &comp, STBI_rgb_alpha);
-	glGenTextures(1, &texture1);
-	glBindTexture(GL_TEXTURE_2D, texture1);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-	stbi_image_free(image);
-
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-	glGenerateMipmap(GL_TEXTURE_2D);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
-
-	
-
-
 	
 	// Start render-loop
 	while(!stopRendering)
 	{
+		//position.x = cameraPosition.x;
+		// Combine the initial rotation with the new position
+		//gridMatrix = initialRotation; // Reset to initial rotation
+		//gridMatrix = glm::translate(gridMatrix, position); // Apply new translation
+
+
+		
 
 		//update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
@@ -600,6 +612,7 @@ int main(int argc, char* argv[])
 		computeShader.setFloat("simpexAmplitude", simpexAmplitude);
 		computeShader.setFloat("worleyAmplitude", worleyAmplitude);
 		computeShader.setFloat("ratio", ratio);
+		computeShader.setVec3("translation", gridSpeed);
 		
 		// SSBO for computeshader
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, grid.getVBO());
