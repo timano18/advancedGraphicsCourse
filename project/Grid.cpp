@@ -20,7 +20,7 @@ unsigned int s_width = 2400;
 unsigned int s_height = 2400;
 int s_xStartPos = -100;
 int s_yStartPos = -100;
-float s_cellSize = 10.0f;
+float s_cellSize = 1.0f;
 float s_perlinScale = 750.0;
 float s_voronoiScale = 100.0;
 

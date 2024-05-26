@@ -27,6 +27,7 @@ layout (location = 2) uniform float worleyScale;
 layout (location = 3) uniform float simpexAmplitude;
 layout (location = 4) uniform float worleyAmplitude;
 layout (location = 5) uniform float ratio;
+layout (location = 6) uniform vec3 translation;
 
 layout(std430, binding = 0) buffer VertexBuffer {
 
@@ -321,50 +322,37 @@ float calculateZ(vec2 pos) {
 }
 
 void main() {
+	float cellsize = 1.0;
 	
     uint idx = gl_GlobalInvocationID.x;
-   // if (idx >= 100) return;
-   	//vertices[idx].positionZ = -400 + perlinNoise(vertices[idx].positionX, vertices[idx].positionY, size, size, 1500);
-	//vertices[idx].positionZ = vertices[idx].positionZ = 100 * cellular2x2(vec2(vertices[idx].positionX, vertices[idx].positionY)/ noiseScale).x ;; 
-
+ 	vertices[idx].positionX += (translation.x * cellsize);
+    vertices[idx].positionY += (translation.y * cellsize);
 
 	vertices[idx].positionZ = calculateZ(vec2(vertices[idx].positionX, vertices[idx].positionY));
-	vertices[idx].positionZ += 30;
+	//vertices[idx].positionZ += 30;
 
-
-
-	/*
-	vec3 off = vec3(10.0, 10.0, 0.0);
-	float hL = -400 +perlinNoise(vertices[idx].positionX - off.x, vertices[idx].positionY  - off.z, size, size, 1500);
-	float hR = -400 + perlinNoise(vertices[idx].positionX  + off.x, vertices[idx].positionY + off.z, size, size, 1500);
-	float hD = -400 + perlinNoise(vertices[idx].positionX - off.z, vertices[idx].positionY  - off.y, size, size, 1500);
-	float hU = -400 + perlinNoise(vertices[idx].positionX + off.z, vertices[idx].positionY  + off.y, size, size, 1500);
-	*/
 	
-	/*
-	vec3 off = vec3(10.0, 10.0, 0.0);
-	float hL = 100 * snoise(vec3(vertices[idx].positionX - off.x, vertices[idx].positionY -off.z, t / 100) / noiseScale); 
-	float hR = 100 * snoise(vec3(vertices[idx].positionX + off.x, vertices[idx].positionY + off.z, t / 100) / noiseScale); 
-	float hD = 100 * snoise(vec3(vertices[idx].positionX - off.z, vertices[idx].positionY - off.y, t / 100) / noiseScale); 
-	float hU = 100 * snoise(vec3(vertices[idx].positionX + off.z, vertices[idx].positionY + off.y, t / 100) / noiseScale); 
-	*/
-	vec3 off = vec3(10.0, 10.0, 0.0);
+
+    //vertices[idx].positionZ += translation.z;
+
+
+
+
+
+	vec3 off = vec3(1.0, 1.0, 0.0) * cellsize;
 	float hL = calculateZ(vec2(vertices[idx].positionX - off.x, vertices[idx].positionY - off.z));
 	float hR = calculateZ(vec2(vertices[idx].positionX + off.x, vertices[idx].positionY + off.z));
 	float hD = calculateZ(vec2(vertices[idx].positionX - off.z, vertices[idx].positionY - off.y));
 	float hU = calculateZ(vec2(vertices[idx].positionX + off.z, vertices[idx].positionY + off.y));
 
 
-
-
-
 	vertices[idx].normalX = hL - hR;
 	vertices[idx].normalY = hD - hU;
-	vertices[idx].normalZ = 200.0;
+	vertices[idx].normalZ = 20.0 * cellsize;
 	
 	vec3 normalized = normalize(vec3(vertices[idx].normalX,vertices[idx].normalY,vertices[idx].normalZ));
 	
 
-	//vertices[idx].positionZ = 100 * snoise(vec3(vertices[idx].positionX, vertices[idx].positionY, 0) / noiseScale); 
+	
 
 }
