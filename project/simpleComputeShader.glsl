@@ -322,7 +322,7 @@ float calculateZ(vec2 pos) {
 }
 
 void main() {
-	float cellsize = 1.0;
+	float cellsize = 10.0;
 	
     uint idx = gl_GlobalInvocationID.x;
  	vertices[idx].positionX += (translation.x * cellsize);
