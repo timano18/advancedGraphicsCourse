@@ -457,6 +457,7 @@ struct Vertex {
 	glm::vec3 normal;
 };
 
+
 int main(int argc, char* argv[])
 {
 	
@@ -563,6 +564,31 @@ int main(int argc, char* argv[])
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
+
+	
+	// Textures
+
+
+	// Load "Grass"
+	unsigned int GrassTexture;
+	glGenTextures(1, &GrassTexture);
+	glBindTexture(GL_TEXTURE_2D, GrassTexture);
+
+	int GrassWidth, GrassHeight, GrassNrChannels;
+	unsigned char* GrassData = stbi_load("../textures/land/testGrass_small.png", &GrassWidth, &GrassHeight, &GrassNrChannels, 0);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, GrassWidth, GrassHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, GrassData);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+
+
+
+
 	
 	// Start render-loop
 	while (!stopRendering)
@@ -616,13 +642,18 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(testShader, "lightSpecular", glm::vec3(1.0f));
 		labhelper::setUniformSlow(testShader, "materialShininess", (1.0f));
 		//labhelper::setUniformSlow(testShader, "materialColor", vec3(1.0f, 0.0f, 0.0f));
-
-			// Different colours for different height levels
-		labhelper::setUniformSlow(testShader, "materialColor1", glm::vec3(0.0f, 1.0f, 0.0f)); // Gräs
-		labhelper::setUniformSlow(testShader, "materialColor2", glm::vec3(0.0f, 0.0f, 1.0f)); // Vatten
-		labhelper::setUniformSlow(testShader, "materialColor3", glm::vec3(0.5f, 0.5f, 0.5f)); // Lutning
-		labhelper::setUniformSlow(testShader, "materialColor4", glm::vec3(0.7f, 0.7f, 0.5f)); // Sand
-		labhelper::setUniformSlow(testShader, "materialColor5", glm::vec3(1.0f, 1.0f, 1.0f)); // Snö
+		
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, GrassTexture);
+		/*
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, StoneTexture);
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, SandTexture);
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, SnowTexture);
+		*/
+	
 		
 
 		glm::mat4 projMatrix = glm::perspective(glm::radians(45.0f), float(windowWidth) / float(windowHeight), nearPlane, farPlane);
