@@ -19,7 +19,7 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 #include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
-using namespace glm;
+//using namespace glm;
 
 #include <Model.h>
 #include "hdr.h"
@@ -27,7 +27,18 @@ using namespace glm;
 
 #include "Grid.h"
 #include "noise.h"
+
+#include "myHelper/shader_c.h"
+#include "myHelper/shader_s.h"
+
+
+
+
+
+#include <stb_image.h>
+
 #include "Water.h"
+
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -40,7 +51,7 @@ float deltaTime = 0.0f;
 int windowWidth, windowHeight;
 
 // Mouse input
-ivec2 g_prevMouseCoords = { -1, -1 };
+glm::ivec2 g_prevMouseCoords = { -1, -1 };
 bool g_isMouseDragging = false;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -48,36 +59,54 @@ bool g_isMouseDragging = false;
 ///////////////////////////////////////////////////////////////////////////////
 GLuint simpleShaderProgram;
 GLuint testShader;
+
+GLuint quadShader;
+
 GLuint waterShader;
+
 
 
 
 ///////////////////////////////////////////////////////////////////////////////
 // Light source
 ///////////////////////////////////////////////////////////////////////////////
-vec3 lightPosition = vec3(0.0f, 813.0f, 752.0f);
+glm::vec3 lightPosition = glm::vec3(0.0f, 813.0f, 752.0f);
 float sunangle = 0.0f;
-vec3 lightDirection;
+glm::vec3 lightDirection;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Camera parameters.
 ///////////////////////////////////////////////////////////////////////////////
-vec3 cameraPosition(186.0f, 829.0f, 1080.0f);
-vec3 cameraDirection = normalize(vec3(0.0f) - cameraPosition);
+glm::vec3 cameraPosition(-0.1f, 130.0f, -0.1f);
+glm::vec3 cameraDirection = glm::normalize(glm::vec3(199.0f, 80.0f, 327.0f) - cameraPosition);
+
+float farPlane = 2000000.0f;
+float nearPlane = 0.1f;
 
 // Camera speed
 float cameraSpeedBase = 100.f;
 float cameraSpeed = cameraSpeedBase;
 float shiftSpeed = 10.0;
 
-vec3 worldUp(0.0f, 1.0f, 0.0f);
+glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Models
 ///////////////////////////////////////////////////////////////////////////////
 labhelper::Model* sphereModel = nullptr;
 
-mat4 gridMatrix;
+glm::mat4 gridMatrix;
+int gridSize = 3000;
+float noiseScale = 0.01;
+float simpexScale = 2964;
+float worleyScale = 500;
+float simpexAmplitude = 1305;
+float worleyAmplitude = 100;
+float ratio = 1.0;
+
+
+float gridZ = -1500.0f;
+glm::vec3 gridSpeed;
 
 void loadShaders(bool is_reload)
 {
@@ -93,12 +122,20 @@ void loadShaders(bool is_reload)
 		testShader = shader;
 	}
 
+	shader = labhelper::loadShaderProgram("../project/background.vert", "../project/background.frag", is_reload);
+	if (shader != 0)
+	{
+		quadShader = shader;
+	}
+
 	shader = labhelper::loadShaderProgram("../project/waterShader.vert", "../project/waterShader.frag", is_reload);
 	if (shader != 0)
 	{
 		waterShader = shader;
 	}
+
 }
+
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -125,17 +162,17 @@ void initialize()
 
 
 	glEnable(GL_DEPTH_TEST); // enable Z-buffering
-	glEnable(GL_CULL_FACE);  // enables backface culling
+	//glEnable(GL_CULL_FACE);  // enables backface culling
 }
 
 void debugDrawLight(const glm::mat4& viewMatrix,
                     const glm::mat4& projectionMatrix,
                     const glm::vec3& worldSpaceLightPos)
 {
-	mat4 modelMatrix = glm::translate(worldSpaceLightPos);
-	modelMatrix = glm::scale(modelMatrix, vec3(30.0f));
+	glm::mat4 modelMatrix = glm::translate(worldSpaceLightPos);
+	modelMatrix = glm::scale(modelMatrix, glm::vec3(30.0f));
 	glUseProgram(simpleShaderProgram);
-	labhelper::setUniformSlow(simpleShaderProgram, "material_color", vec3(1.0f, 1.0f, 0.0f));
+	labhelper::setUniformSlow(simpleShaderProgram, "material_color", glm::vec3(1.0f, 1.0f, 0.0f));
 
 	labhelper::setUniformSlow(simpleShaderProgram, "modelViewProjectionMatrix",
 	                          projectionMatrix * viewMatrix * modelMatrix);
@@ -240,10 +277,10 @@ bool handleEvents(void)
 			int delta_x = event.motion.x - g_prevMouseCoords.x;
 			int delta_y = event.motion.y - g_prevMouseCoords.y;
 			float rotationSpeed = 0.1f;
-			mat4 yaw = rotate(rotationSpeed * deltaTime * -delta_x, worldUp);
-			mat4 pitch = rotate(rotationSpeed * deltaTime * -delta_y,
+			glm::mat4 yaw = rotate(rotationSpeed * deltaTime * -delta_x, worldUp);
+			glm::mat4 pitch = rotate(rotationSpeed * deltaTime * -delta_y,
 			                    normalize(cross(cameraDirection, worldUp)));
-			cameraDirection = vec3(pitch * yaw * vec4(cameraDirection, 0.0f));
+			cameraDirection = glm::vec3(pitch * yaw * glm::vec4(cameraDirection, 0.0f));
 			g_prevMouseCoords.x = event.motion.x;
 			g_prevMouseCoords.y = event.motion.y;
 		}
@@ -251,8 +288,8 @@ bool handleEvents(void)
 
 	// check keyboard state (which keys are still pressed)
 	const uint8_t* state = SDL_GetKeyboardState(nullptr);
-	vec3 cameraRight = cross(cameraDirection, worldUp);
-
+	glm::vec3 cameraRight = cross(cameraDirection, worldUp);
+	/*
 	if(state[SDL_SCANCODE_W])
 	{
 		cameraPosition += cameraSpeed * deltaTime * cameraDirection;
@@ -264,27 +301,77 @@ bool handleEvents(void)
 	if(state[SDL_SCANCODE_A])
 	{
 		cameraPosition -= cameraSpeed * deltaTime * cameraRight;
-	}
+	}	
 	if(state[SDL_SCANCODE_D])
 	{
 		cameraPosition += cameraSpeed * deltaTime * cameraRight;
 	}
-	if(state[SDL_SCANCODE_Q]) // SDL_SCANCODE_LCTRL
+	*/
+	if(state[SDL_SCANCODE_Q])
 	{
 		cameraPosition -= cameraSpeed * deltaTime * worldUp;
 	}
-	if(state[SDL_SCANCODE_E]) // SDL_SCANCODE_SPACE
+	if(state[SDL_SCANCODE_E])
 	{
 		cameraPosition += cameraSpeed * deltaTime * worldUp;
 	}
-	if (state[SDL_SCANCODE_RIGHT])
+	if (state[SDL_SCANCODE_A] || state[SDL_SCANCODE_D] ||
+		state[SDL_SCANCODE_W] || state[SDL_SCANCODE_S])
 	{
-		lightPosition += cameraSpeed * deltaTime * vec3(1.0f, 0.0, 0.0) / 2.0f;
+		if (state[SDL_SCANCODE_A])
+		{
+			gridSpeed = -glm::vec3(cameraRight.x, cameraRight.z, 0) * (cameraSpeed/100.0f);
+			cameraPosition -= cameraSpeed * deltaTime * cameraRight;
+	
+		}
+		else if (state[SDL_SCANCODE_D])
+		{
+			gridSpeed = glm::vec3(cameraRight.x, cameraRight.z, 0) * (cameraSpeed / 100.0f);
+			cameraPosition += cameraSpeed * deltaTime * cameraRight;
+		}
+		else if (state[SDL_SCANCODE_W])
+		{
+			gridSpeed = glm::vec3(cameraDirection.x, cameraDirection.z, 0) * (cameraSpeed / 100.0f);
+			cameraPosition += cameraSpeed * deltaTime * cameraDirection;
+		}
+		else if (state[SDL_SCANCODE_S])
+		{
+			gridSpeed = -glm::vec3(cameraDirection.x, cameraDirection.z, 0) * (cameraSpeed / 100.0f);
+			cameraPosition -= cameraSpeed * deltaTime * cameraDirection;
+		}
 	}
-	if (state[SDL_SCANCODE_LEFT])
+	else
 	{
-		lightPosition -= cameraSpeed * deltaTime * vec3(1.0f, 0.0, 0.0) / 2.0f;
+		gridSpeed = glm::vec3(0.0);
 	}
+
+	/*
+	if (state[SDL_SCANCODE_RIGHT] || state[SDL_SCANCODE_LEFT] ||
+		state[SDL_SCANCODE_UP] || state[SDL_SCANCODE_DOWN])
+	{
+		if (state[SDL_SCANCODE_RIGHT])
+		{
+			gridSpeed.y = 1.0;
+		}
+		if (state[SDL_SCANCODE_LEFT])
+		{
+			gridSpeed.y = -1.0;
+		}
+		if (state[SDL_SCANCODE_UP])
+		{
+			gridSpeed.x = 1.0;
+		}
+		if (state[SDL_SCANCODE_DOWN])
+		{
+			gridSpeed.x = -1.0;
+		}
+	}
+	else
+	{
+		gridSpeed = glm::vec3(0.0);
+	}
+	*/
+	
 	if (state[SDL_SCANCODE_LSHIFT] == true)
 	{
 		cameraSpeed = cameraSpeedBase * shiftSpeed;
@@ -324,8 +411,19 @@ void gui()
 	ImGui::SliderFloat("Light pos y", &lightPosition.y, -10000.0f, 10000.0f);
 	ImGui::SliderFloat("Light pos z", &lightPosition.z, -10000.0f, 10000.0f);
 	ImGui::Text("Camera Pos:  x: %.3f  y: %.3f  z: %.3f", cameraPosition.x, cameraPosition.y, cameraPosition.z);
+	ImGui::Text("Camera Dir:  x: %.3f  y: %.3f  z: %.3f", cameraDirection.x, cameraDirection.y, cameraDirection.z);
+	ImGui::Text("Grid Pos:  x: %.3f  y: %.3f  z: %.3f", gridSpeed.x, gridSpeed.y, gridSpeed.z);
 	ImGui::SliderFloat("Sun angle", &sunangle, 0.0f, 2.0f);
 	ImGui::Text("Light Direction:  x: %.3f  y: %.3f  z: %.3f", lightDirection.x, lightDirection.y, lightDirection.z);
+	ImGui::SliderFloat("simpexScale", &simpexScale, 0.1f, 3000.0f);
+	ImGui::SliderFloat("worleyScale", &worleyScale, 0.1f, 3000.0f);
+	ImGui::SliderFloat("simpexAmplitude", &simpexAmplitude, 0.1f, 3000.0f);
+	ImGui::SliderFloat("worleyAmplitude", &worleyAmplitude, 0.1f, 3000.0f);
+	ImGui::SliderFloat("ratio", &ratio, 0.0f, 1.0f);
+	ImGui::SliderInt("Grid Size", &gridSize, 10, 10000);
+	ImGui::SliderFloat("Far plane", &farPlane, 100.0f, 2000000.0f);
+	ImGui::SliderFloat("Near Plane", &nearPlane, 0.1f, 10000.0f);
+
 
 
 	// ----------------------------------------------------------
@@ -337,8 +435,43 @@ void gui()
 	labhelper::perf::drawEventsWindow();
 }
 
+void computeShaderSetupQuery()
+{
+	// query limitations
+	// -----------------
+	int max_compute_work_group_count[3];
+	int max_compute_work_group_size[3];
+	int max_compute_work_group_invocations;
+
+	for (int idx = 0; idx < 3; idx++) {
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, idx, &max_compute_work_group_count[idx]);
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, idx, &max_compute_work_group_size[idx]);
+	}
+	glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &max_compute_work_group_invocations);
+
+	std::cout << "OpenGL Limitations: " << std::endl;
+	std::cout << "maximum number of work groups in X dimension " << max_compute_work_group_count[0] << std::endl;
+	std::cout << "maximum number of work groups in Y dimension " << max_compute_work_group_count[1] << std::endl;
+	std::cout << "maximum number of work groups in Z dimension " << max_compute_work_group_count[2] << std::endl;
+
+	std::cout << "maximum size of a work group in X dimension " << max_compute_work_group_size[0] << std::endl;
+	std::cout << "maximum size of a work group in Y dimension " << max_compute_work_group_size[1] << std::endl;
+	std::cout << "maximum size of a work group in Z dimension " << max_compute_work_group_size[2] << std::endl;
+
+	std::cout << "Number of invocations in a single local work group that may be dispatched to a compute shader " << max_compute_work_group_invocations << std::endl;
+}
+
+
+
+struct Vertex {
+	glm::vec3 position;
+	glm::vec3 normal;
+};
+
 int main(int argc, char* argv[])
 {
+	
+
 	g_window = labhelper::init_window_SDL("OpenGL Project");
 
 
@@ -356,41 +489,92 @@ int main(int argc, char* argv[])
 	auto start = std::chrono::high_resolution_clock::now();
 
 	// Generate initial grid parameters
-	int gridWidth = 240;
-	int gridHeight = 240;
+	int gridWidth = 580;
+	int gridHeight = 580;
 	int xStartPos;
 	int yStartPos;
 	float cellSize = 10.0;
-	float perlinScale = 1500.0;
-	float voronoiScale = 200.0;
+	float perlinScale = 750.0;
+	float voronoiScale = 100.0;
 
-	float LoD = 1.0; // Tillfällig
+
+	// Generate initial chunk parameters
+	int xChunkStart = 0;
+	int yChunkStart = 0;
+	int xChunkEnd = 1;
+	int yChunkEnd = 1;
+
+	int LoD = 8; // TillfÃ¤llig
 
 	//GridChunk initialChunk1;
-	GridChunk initialChunk2;
-	GridChunk initialChunk3;
-																																				// *** KOMMENTARER: Lägg till "levels of detail". Går ej att stoppa in negativa koordinater just nu. Kanske borde byta från (x1,y1,x2,y2) till (x1,x2,y1,y2)? Fixa "GridChunk::generateChunkGrids". Gör klart "GridChunk::gridChunkCenter()"
-	// createNewStandardChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd);																	// Standard (värden i grid.cpp)
-	//initialChunk1.createNewStandardChunk(0, 0, 1, 1, -500);
-	// createNewChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);				// Välj variabler
-	initialChunk2.createNewChunk(0, 0, 1, 1, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, 900, perlinScale, voronoiScale);				// Artificiellt lägre LoD. Måste ändra på filter-variablerna också för att det ska bli korrekt?
+	//GridChunk initialChunk2;
 
-	// Ocean
-	initialChunk3.createNewChunk(0, 0, 1, 1, 2, 2, 2400, 50, 0, 0);
+	// query limitations
+	computeShaderSetupQuery();
+	
 
-	gridMatrix = mat4(1.0f);
 
-	gridMatrix = glm::rotate(gridMatrix, glm::radians(90.0f), glm::vec3(1, 0, 0));
-	gridMatrix = glm::translate(gridMatrix, glm::vec3(-gridWidth / 2.0f, -gridHeight / 2.0f, 0.0f));
+	// Build and compile shaders
+	ComputeShader computeShader("../project/simpleComputeShader.glsl");
+
+
+
+
+
+	Grid grid;
+	grid.generateGrid();
+
+	glBindBuffer(GL_ARRAY_BUFFER, grid.getVBO());
+	Vertex* mappedVertices = (Vertex*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
+	for (int i = 0; i < 10; ++i) {
+		printf("Vertex %d: Pos(%f, %f, %f), Norm(%f, %f, %f)\n",
+			i,
+			mappedVertices[i].position.x, mappedVertices[i].position.y, mappedVertices[i].position.z,
+			mappedVertices[i].normal.x, mappedVertices[i].normal.y, mappedVertices[i].normal.z);
+	}
+	glUnmapBuffer(GL_ARRAY_BUFFER);
+	
+																																	// *** KOMMENTARER: LÃ¤gg till "levels of detail". GÃ¥r ej att stoppa in negativa koordinater just nu. Kanske borde byta frÃ¥n (x1,y1,x2,y2) till (x1,x2,y1,y2)? Fixa "GridChunk::generateChunkGrids". GÃ¶r klart "GridChunk::gridChunkCenter()"
+	// createNewStandardChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd);																	// Standard (vÃ¤rden i grid.cpp)
+	//initialChunk1.createNewStandardChunk(0, 0, 1, 1);
+	// createNewChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);				// VÃ¤lj variabler
+	//initialChunk2.createNewChunk(0, 1, 3, 2, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, perlinScale, voronoiScale);						// Artificiellt lÃ¤gre LoD. MÃ¥ste Ã¤ndra pÃ¥ filter-variablerna ocksÃ¥ fÃ¶r att det ska bli korrekt?
+
+	gridMatrix = glm::mat4(1.0f);
+
+	//gridMatrix = glm::rotate(gridMatrix, glm::radians(90.0f), glm::vec3(1, 0, 0));
+	//gridMatrix = glm::translate(gridMatrix, glm::vec3(-gridWidth / 2.0f, -gridHeight / 2.0f, -1500.0f));
+	
+	//cameraPosition = glm::vec3(gridMatrix[3]);
+
+
+	gridSpeed = glm::vec3(0.0f, 0.0f, 0.0f); // Grid position
+	glm::mat4 initialRotation = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(90.0f, 0.0f, 0.0f)); // Example rotation
+	gridMatrix = initialRotation; // Applying initial rotation
+
 
 	auto stop = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(stop - start);
-	std::cout << "Initial grid(s); generation time: " << duration.count() << std::endl;															// End clock, create inition chunks
+	std::cout << "Initial grid(s); generation time: " << duration.count() << std::endl;												// End clock, create inition chunks
+
+
+	
+	std::cout << "After compute shader" << std::endl;
+	glBindBuffer(GL_ARRAY_BUFFER, grid.getVBO());
+	mappedVertices = (Vertex*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
+	for (int i = 0; i < 100; ++i) {
+		printf("Vertex %d: Pos(%f, %f, %f), Norm(%f, %f, %f)\n",
+			i,
+			mappedVertices[i].position.x, mappedVertices[i].position.y, mappedVertices[i].position.z,
+			mappedVertices[i].normal.x, mappedVertices[i].normal.y, mappedVertices[i].normal.z);
+	}
+	glUnmapBuffer(GL_ARRAY_BUFFER);
+
 
 
 	
 	// SETUP
-	// DESSA MÅSTE UPPDATERAS NÄR MAN ÄNDRAR STORLEKEN PÅ SKÄRMEN!!!
+	// DESSA MÃ…STE UPPDATERAS NÃ„R MAN Ã„NDRAR STORLEKEN PÃ… SKÃ„RMEN!!!
 	int width = 1280;
 	int height = 720;
 
@@ -512,6 +696,15 @@ int main(int argc, char* argv[])
 	// Start render-loop
 	while(!stopRendering)
 	{
+
+		//position.x = cameraPosition.x;
+		// Combine the initial rotation with the new position
+		//gridMatrix = initialRotation; // Reset to initial rotation
+		//gridMatrix = glm::translate(gridMatrix, position); // Apply new translation
+
+
+		
+
 		{
 			int w, h;
 			SDL_GetWindowSize(g_window, &w, &h);
@@ -521,6 +714,7 @@ int main(int argc, char* argv[])
 				windowHeight = h;
 			}
 		}
+
 
 
 		//Update screen size
@@ -550,16 +744,16 @@ int main(int argc, char* argv[])
 		glUseProgram(testShader);
 		labhelper::setUniformSlow(testShader, "viewPos", cameraPosition);
 		labhelper::setUniformSlow(testShader, "lightDirection", lightDirection);
-		labhelper::setUniformSlow(testShader, "lightDiffuse", vec3(1.0f));
-		labhelper::setUniformSlow(testShader, "lightAmbient", vec3(0.1f));
-		labhelper::setUniformSlow(testShader, "lightSpecular", vec3(1.0f));
+		labhelper::setUniformSlow(testShader, "lightDiffuse", glm::vec3(1.0f));
+		labhelper::setUniformSlow(testShader, "lightAmbient", glm::vec3(0.1f));
+		labhelper::setUniformSlow(testShader, "lightSpecular", glm::vec3(1.0f));
 		labhelper::setUniformSlow(testShader, "materialShininess", (1.0f));
 
-		labhelper::setUniformSlow(testShader, "materialColor1", vec3(0.0f, 1.0f, 0.0f)); // Gräs
+		labhelper::setUniformSlow(testShader, "materialColor1", vec3(0.0f, 1.0f, 0.0f)); // GrÃ¤s
 		labhelper::setUniformSlow(testShader, "materialColor2", vec3(0.0f, 0.0f, 1.0f)); // Vatten
 		labhelper::setUniformSlow(testShader, "materialColor3", vec3(0.5f, 0.5f, 0.5f)); // Lutning
 		labhelper::setUniformSlow(testShader, "materialColor4", vec3(0.7f, 0.7f, 0.5f)); // Sand
-		labhelper::setUniformSlow(testShader, "materialColor5", vec3(1.0f, 1.0f, 1.0f)); // Snö
+		labhelper::setUniformSlow(testShader, "materialColor5", vec3(1.0f, 1.0f, 1.0f)); // SnÃ¶
 
 		labhelper::setUniformSlow(testShader, "model", gridMatrix);
 		labhelper::setUniformSlow(testShader, "waterPlaneHeight", waterHeight); // Height if the water plane (default 0.0)
@@ -610,9 +804,30 @@ int main(int argc, char* argv[])
 
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		
 		glUseProgram(testShader);
 		labhelper::setUniformSlow(testShader, "waterPlaneDirection", -1.0f);
+
+
+
+	
+
+		computeShader.use();
+		computeShader.setInt("size", gridSize);
+		computeShader.setFloat("simpexScale", simpexScale);
+		computeShader.setFloat("worleyScale", worleyScale);
+		computeShader.setFloat("simpexAmplitude", simpexAmplitude);
+		computeShader.setFloat("worleyAmplitude", worleyAmplitude);
+		computeShader.setFloat("ratio", ratio);
+		computeShader.setVec3("translation", gridSpeed);
+		
+		// SSBO for computeshader
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, grid.getVBO());
+		glDispatchCompute(57600, 1, 1);
+
+
+		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		// Change camera for the reflection
 		float cameraDistance = 2 * (cameraPosition.y - waterHeight);
@@ -620,12 +835,13 @@ int main(int argc, char* argv[])
 		cameraPosition = {cameraPosition.x, cameraPosition.y - cameraDistance, cameraPosition.z};
 		cameraDirection.y = -cameraDirection.y;
 		labhelper::setUniformSlow(testShader, "viewPos", cameraPosition);
-		projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 0.1f, 2000000.0f); // 0.1f, 2000000.0f near/far plane
-		viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
+		glm::mat4 projMatrix = glm::perspective(glm::radians(45.0f), float(windowWidth) / float(windowHeight), nearPlane, farPlane);
+		glm::mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
 		labhelper::setUniformSlow(testShader, "projection", projMatrix);
 		labhelper::setUniformSlow(testShader, "view", viewMatrix);
+		labhelper::setUniformSlow(testShader, "model", gridMatrix);
+		grid.DrawGrid();
 
-		initialChunk2.DrawGridChunk();
 
 		cameraPosition = { cameraPosition.x, cameraPosition.y + cameraDistance, cameraPosition.z};
 		cameraDirection.y = -cameraDirection.y;
@@ -635,6 +851,10 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(testShader, "projection", projMatrix);
 		labhelper::setUniformSlow(testShader, "view", viewMatrix);
 		
+
+
+
+
 		// ground, refraction (water)
 		glBindFramebuffer(GL_FRAMEBUFFER, refractionFBO);
 
@@ -643,7 +863,7 @@ int main(int argc, char* argv[])
 
 		glUseProgram(testShader);
 		labhelper::setUniformSlow(testShader, "waterPlaneDirection", 1.0f);
-		initialChunk2.DrawGridChunk();
+			grid.DrawGrid();
 
 
 		// Draw scene
@@ -653,7 +873,7 @@ int main(int argc, char* argv[])
 
 		glUseProgram(testShader);
 		labhelper::setUniformSlow(testShader, "waterPlaneDirection", 0.0f);
-		initialChunk2.DrawGridChunk();
+		grid.DrawGrid();
 
 		
 		// water plane
@@ -680,8 +900,10 @@ int main(int argc, char* argv[])
 		
 
 		// *** GUI
+
 		// Render overlay GUI.
 		gui();
+
 
 		// Finish the frame and render the GUI
 		labhelper::finishFrame();

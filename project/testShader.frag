@@ -22,6 +22,7 @@ uniform float materialShininess;
 
 vec3 CalcDirLight(vec3 normal, vec3 viewDir)
 {
+
     vec3 lightDir = normalize(lightDirection);
 
     // diffuse shading
@@ -34,7 +35,7 @@ vec3 CalcDirLight(vec3 normal, vec3 viewDir)
     // combine results
     vec3 materialColor;
 
-    // Från vertex shader
+    // FrÃ¥n vertex shader
     materialColor = vertColour;
 
     vec3 ambient = lightAmbient * materialColor;
@@ -50,6 +51,5 @@ void main()
     vec3 viewDir = normalize(viewPos - FragPos);
     vec3 result = CalcDirLight(norm, viewDir);
 
-    FragColor = vec4(vec3(result), 1.0f); // combining the two lighting components
+    FragColor = vec4(vec3(result), 1.0f); 
 }
-
