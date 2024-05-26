@@ -19,25 +19,29 @@ uniform vec3 lightDiffuse;
 uniform vec3 lightSpecular;
 
 uniform float materialShininess;
-uniform vec3 materialColor1;
-uniform vec3 materialColor2;
-uniform vec3 materialColor3;
-uniform vec3 materialColor4;
-uniform vec3 materialColor5;
 
 vec3 CalcDirLight(vec3 normal, vec3 viewDir)
 {
-    vec3 lightDir = - normalize(lightDirection);
+
+    vec3 lightDir = normalize(lightDirection);
+
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
 
+    // specular shading
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), materialShininess);
 
+    // combine results
     vec3 materialColor;
-    materialColor = vertColour;
 
+    // Från vertex shader
+    materialColor = vertColour;
 
     vec3 ambient = lightAmbient * materialColor;
     vec3 diffuse = lightDiffuse * diff * materialColor;
+    vec3 specular = lightSpecular * spec * materialColor;
+
     return (ambient + diffuse);
 }
 

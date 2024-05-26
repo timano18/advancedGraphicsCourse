@@ -9,6 +9,7 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 #include <algorithm>
 #include <chrono>
 #include <iostream>
+#include <stb_image.h>
 
 #include <labhelper.h>
 #include <imgui.h>
@@ -26,6 +27,7 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 
 #include "Grid.h"
 #include "noise.h"
+
 #include "myHelper/shader_c.h"
 #include "myHelper/shader_s.h"
 
@@ -34,6 +36,9 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 
 
 #include <stb_image.h>
+
+#include "Water.h"
+
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -54,7 +59,10 @@ bool g_isMouseDragging = false;
 ///////////////////////////////////////////////////////////////////////////////
 GLuint simpleShaderProgram;
 GLuint testShader;
+
 GLuint quadShader;
+
+GLuint waterShader;
 
 
 
@@ -113,13 +121,18 @@ void loadShaders(bool is_reload)
 	{
 		testShader = shader;
 	}
+
 	shader = labhelper::loadShaderProgram("../project/background.vert", "../project/background.frag", is_reload);
 	if (shader != 0)
 	{
 		quadShader = shader;
 	}
 
-
+	shader = labhelper::loadShaderProgram("../project/waterShader.vert", "../project/waterShader.frag", is_reload);
+	if (shader != 0)
+	{
+		waterShader = shader;
+	}
 
 }
 
@@ -461,13 +474,19 @@ int main(int argc, char* argv[])
 
 	g_window = labhelper::init_window_SDL("OpenGL Project");
 
-	
-	initialize();
 
+	initialize();
+	int w, h;
+	SDL_GetWindowSize(g_window, &w, &h);
+	if (w != windowWidth || h != windowHeight)
+	{
+		windowWidth = w;
+		windowHeight = h;
+	}
 	bool stopRendering = false;
 
-	auto startTime = std::chrono::system_clock::now();																				// Start clock, create inition chunks
-	auto start = std::chrono::high_resolution_clock::now();													
+	auto startTime = std::chrono::system_clock::now();																							// Start clock, create inition chunks
+	auto start = std::chrono::high_resolution_clock::now();
 
 	// Generate initial grid parameters
 	int gridWidth = 580;
@@ -478,13 +497,14 @@ int main(int argc, char* argv[])
 	float perlinScale = 750.0;
 	float voronoiScale = 100.0;
 
+
 	// Generate initial chunk parameters
 	int xChunkStart = 0;
 	int yChunkStart = 0;
 	int xChunkEnd = 1;
 	int yChunkEnd = 1;
 
-	int LoD = 8; // Tillfällig
+	int LoD = 8; // TillfÃ¤llig
 
 	//GridChunk initialChunk1;
 	//GridChunk initialChunk2;
@@ -514,11 +534,11 @@ int main(int argc, char* argv[])
 	}
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 	
-																																	// *** KOMMENTARER: Lägg till "levels of detail". Går ej att stoppa in negativa koordinater just nu. Kanske borde byta från (x1,y1,x2,y2) till (x1,x2,y1,y2)? Fixa "GridChunk::generateChunkGrids". Gör klart "GridChunk::gridChunkCenter()"
-	// createNewStandardChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd);																	// Standard (värden i grid.cpp)
+																																	// *** KOMMENTARER: LÃ¤gg till "levels of detail". GÃ¥r ej att stoppa in negativa koordinater just nu. Kanske borde byta frÃ¥n (x1,y1,x2,y2) till (x1,x2,y1,y2)? Fixa "GridChunk::generateChunkGrids". GÃ¶r klart "GridChunk::gridChunkCenter()"
+	// createNewStandardChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd);																	// Standard (vÃ¤rden i grid.cpp)
 	//initialChunk1.createNewStandardChunk(0, 0, 1, 1);
-	// createNewChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);				// Välj variabler
-	//initialChunk2.createNewChunk(0, 1, 3, 2, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, perlinScale, voronoiScale);						// Artificiellt lägre LoD. Måste ändra på filter-variablerna också för att det ska bli korrekt?
+	// createNewChunk(xChunkStart, yChunkStart, xChunkEnd, yChunkEnd, gridWidth, gridHeight, cellSize, perlinScale, voronoiScale);				// VÃ¤lj variabler
+	//initialChunk2.createNewChunk(0, 1, 3, 2, gridWidth / LoD, gridHeight / LoD, cellSize * LoD, perlinScale, voronoiScale);						// Artificiellt lÃ¤gre LoD. MÃ¥ste Ã¤ndra pÃ¥ filter-variablerna ocksÃ¥ fÃ¶r att det ska bli korrekt?
 
 	gridMatrix = glm::mat4(1.0f);
 
@@ -526,6 +546,7 @@ int main(int argc, char* argv[])
 	//gridMatrix = glm::translate(gridMatrix, glm::vec3(-gridWidth / 2.0f, -gridHeight / 2.0f, -1500.0f));
 	
 	//cameraPosition = glm::vec3(gridMatrix[3]);
+
 
 	gridSpeed = glm::vec3(0.0f, 0.0f, 0.0f); // Grid position
 	glm::mat4 initialRotation = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(90.0f, 0.0f, 0.0f)); // Example rotation
@@ -552,9 +573,130 @@ int main(int argc, char* argv[])
 
 
 	
+	// SETUP
+	// DESSA MÃ…STE UPPDATERAS NÃ„R MAN Ã„NDRAR STORLEKEN PÃ… SKÃ„RMEN!!!
+	int width = 1280;
+	int height = 720;
+
+	struct Vertex {
+		glm::vec3 position;
+		glm::vec3 normal;
+	};
+	std::vector<Vertex> vertices;
+	std::vector<unsigned int> indices;
+	std::vector<float> normals;
+
+	// PLANE
+	float waterPlane[] = {
+	2400, 2400, 0.0f,		1.0f, 1.0f,
+	2400, 0, 0.0f,			0.0f, 1.0f,
+	0, 2400, 0.0f,			1.0f, 0.0f,
+
+	2400, 0, 0.0f,			0.0f, 1.0f,
+	0, 0, 0.0f,				0.0f, 0.0f,
+	0, 2400, 0.0f,			1.0f, 0.0f
+};
+
+	unsigned int waterPlaneVAO, waterPlaneVBO;
+	glGenVertexArrays(1, &waterPlaneVAO);
+	glGenBuffers(1, &waterPlaneVBO);
+	glBindVertexArray(waterPlaneVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, waterPlaneVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(waterPlane), &waterPlane, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+	// REFLECTION
+	unsigned int reflectionFBO;
+	glGenFramebuffers(1, &reflectionFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, reflectionFBO);
+
+	unsigned int reflectionRBO;
+	glGenRenderbuffers(1, &reflectionRBO);
+	glBindRenderbuffer(GL_RENDERBUFFER, reflectionRBO);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, windowWidth, windowHeight);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, reflectionRBO);
+
+	unsigned int reflectionTextureColorbuffer;
+	glGenTextures(1, &reflectionTextureColorbuffer);
+	glBindTexture(GL_TEXTURE_2D, reflectionTextureColorbuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, reflectionTextureColorbuffer, 0);
+
+	// REFRACTION
+	unsigned int refractionFBO;
+	glGenFramebuffers(1, &refractionFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, refractionFBO);
+
+	unsigned int refractionRBO;
+	glGenRenderbuffers(1, &refractionRBO);
+	glBindRenderbuffer(GL_RENDERBUFFER, refractionRBO);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, windowWidth, windowHeight);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, refractionRBO);
+
+	unsigned int refractionTextureColorbuffer;
+	glGenTextures(1, &refractionTextureColorbuffer);
+	glBindTexture(GL_TEXTURE_2D, refractionTextureColorbuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, refractionTextureColorbuffer, 0);
+
+	unsigned int refractionTextureDepthbuffer;
+	glGenTextures(1, &refractionTextureDepthbuffer);
+	glBindTexture(GL_TEXTURE_2D, refractionTextureDepthbuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, windowWidth, windowHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, refractionTextureDepthbuffer, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, refractionTextureDepthbuffer, 0);
+
+	// Load DUDVmap
+	unsigned int DUDVtexture;
+	glGenTextures(1, &DUDVtexture);
+	glBindTexture(GL_TEXTURE_2D, DUDVtexture);
+
+	int DUDVwidth, DUDVheight, DUDVnrChannels;
+	unsigned char *DUDVdata = stbi_load("../textures/water/waterDUDV.png", &DUDVwidth, &DUDVheight, &DUDVnrChannels, 0);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, DUDVwidth, DUDVheight, 0, GL_RGB, GL_UNSIGNED_BYTE, DUDVdata);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// Load Normalmap
+	unsigned int Normaltexture;
+	glGenTextures(1, &Normaltexture);
+	glBindTexture(GL_TEXTURE_2D, Normaltexture);
+
+	int Normalwidth, Normalheight, NormalnrChannels;
+	unsigned char* Normaldata = stbi_load("../textures/water/waterNormal.png", &Normalwidth, &Normalheight, &NormalnrChannels, 0);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Normalwidth, Normalheight, 0, GL_RGB, GL_UNSIGNED_BYTE, Normaldata);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// VARIABLES
+	float waterHeight = 0.0f;
+	float waveSpeed = 0.00025f;
+	float waveScale = 7.0f;
+
+	// END
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 	// Start render-loop
 	while(!stopRendering)
 	{
+
 		//position.x = cameraPosition.x;
 		// Combine the initial rotation with the new position
 		//gridMatrix = initialRotation; // Reset to initial rotation
@@ -563,46 +705,112 @@ int main(int argc, char* argv[])
 
 		
 
+		{
+			int w, h;
+			SDL_GetWindowSize(g_window, &w, &h);
+			if (w != windowWidth || h != windowHeight)
+			{
+				windowWidth = w;
+				windowHeight = h;
+			}
+		}
+
+
+
+		//Update screen size
+			// FRAMEBUFFERS
+
+		// *** SETUP ***
 		//update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
 		previousTime = currentTime;
 		currentTime = timeSinceStart.count();
 		deltaTime = currentTime - previousTime;
-
 		// check events (keyboard among other)
 		stopRendering = handleEvents();
-
 		// Inform imgui of new frame
 		labhelper::newFrame( g_window );
-
 		// render to window
 		display();
-
-		
 		lightDirection = rotateSun(sunangle);
-		glUseProgram(testShader); 
+		mat4 projMatrix;
+		mat4 viewMatrix;
+
+		// *** LOAD DEFAULT VALUES TO SHADERS ***
+		projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 0.1f, 2000000.0f);
+		viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
+		
+		// test shader
+		glUseProgram(testShader);
 		labhelper::setUniformSlow(testShader, "viewPos", cameraPosition);
 		labhelper::setUniformSlow(testShader, "lightDirection", lightDirection);
 		labhelper::setUniformSlow(testShader, "lightDiffuse", glm::vec3(1.0f));
 		labhelper::setUniformSlow(testShader, "lightAmbient", glm::vec3(0.1f));
 		labhelper::setUniformSlow(testShader, "lightSpecular", glm::vec3(1.0f));
 		labhelper::setUniformSlow(testShader, "materialShininess", (1.0f));
-		//labhelper::setUniformSlow(testShader, "materialColor", vec3(1.0f, 0.0f, 0.0f));
 
-			// Different colours for different height levels
-		labhelper::setUniformSlow(testShader, "materialColor1", glm::vec3(0.0f, 1.0f, 0.0f)); // Gräs
-		labhelper::setUniformSlow(testShader, "materialColor2", glm::vec3(0.0f, 0.0f, 1.0f)); // Vatten
-		labhelper::setUniformSlow(testShader, "materialColor3", glm::vec3(0.5f, 0.5f, 0.5f)); // Lutning
-		labhelper::setUniformSlow(testShader, "materialColor4", glm::vec3(0.7f, 0.7f, 0.5f)); // Sand
-		labhelper::setUniformSlow(testShader, "materialColor5", glm::vec3(1.0f, 1.0f, 1.0f)); // Snö
-		
+		labhelper::setUniformSlow(testShader, "materialColor1", vec3(0.0f, 1.0f, 0.0f)); // GrÃ¤s
+		labhelper::setUniformSlow(testShader, "materialColor2", vec3(0.0f, 0.0f, 1.0f)); // Vatten
+		labhelper::setUniformSlow(testShader, "materialColor3", vec3(0.5f, 0.5f, 0.5f)); // Lutning
+		labhelper::setUniformSlow(testShader, "materialColor4", vec3(0.7f, 0.7f, 0.5f)); // Sand
+		labhelper::setUniformSlow(testShader, "materialColor5", vec3(1.0f, 1.0f, 1.0f)); // SnÃ¶
 
-		glm::mat4 projMatrix = glm::perspective(glm::radians(45.0f), float(windowWidth) / float(windowHeight), nearPlane, farPlane);
-		glm::mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
-		labhelper::setUniformSlow(testShader, "projection", projMatrix);
-		labhelper::setUniformSlow(testShader, "view", viewMatrix);
 		labhelper::setUniformSlow(testShader, "model", gridMatrix);
-		grid.DrawGrid();
+		labhelper::setUniformSlow(testShader, "waterPlaneHeight", waterHeight); // Height if the water plane (default 0.0)
+		labhelper::setUniformSlow(testShader, "waterPlaneDirection", 1.0f); // 1 = cull > height, -1 = cull < height
+
+		// water shader
+		glUseProgram(waterShader);
+		labhelper::setUniformSlow(waterShader, "projection", projMatrix);
+		labhelper::setUniformSlow(waterShader, "view", viewMatrix);
+		labhelper::setUniformSlow(waterShader, "model", gridMatrix);
+		labhelper::setUniformSlow(waterShader, "reflectionTexture", 0);
+		labhelper::setUniformSlow(waterShader, "refractionTexture", 1);
+		labhelper::setUniformSlow(waterShader, "dudvMap", 2);
+		labhelper::setUniformSlow(waterShader, "waveScale", waveScale);
+
+		labhelper::setUniformSlow(waterShader, "viewPos", cameraPosition);
+		labhelper::setUniformSlow(waterShader, "lightDirection", lightDirection);
+		labhelper::setUniformSlow(waterShader, "lightDiffuse", vec3(1.0f));
+		labhelper::setUniformSlow(waterShader, "lightAmbient", vec3(0.1f));
+		labhelper::setUniformSlow(waterShader, "lightSpecular", vec3(1.0f));
+		labhelper::setUniformSlow(waterShader, "materialShininess", (1.0f));
+
+		// *** RENDER ***
+		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_CLIP_DISTANCE0);
+
+		// wave movement
+		waveScale += waveSpeed;
+		//waveScale = fmod(waveScale, 10); // "hackar" ibland vid (waveScale = 1)
+		if (waveScale >= 8.0) {
+			waveScale -= 1.0;
+		}
+		labhelper::setUniformSlow(waterShader, "waveScale", waveScale);
+
+		// ground, reflection (water)
+		glBindFramebuffer(GL_FRAMEBUFFER, reflectionFBO);
+		glBindTexture(GL_TEXTURE_2D, reflectionTextureColorbuffer);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+		glBindRenderbuffer(GL_RENDERBUFFER, reflectionFBO);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, windowWidth, windowHeight);
+
+		glBindTexture(GL_TEXTURE_2D, refractionTextureColorbuffer);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+		glBindTexture(GL_TEXTURE_2D, refractionTextureDepthbuffer);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, windowWidth, windowHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+		glBindRenderbuffer(GL_RENDERBUFFER, refractionFBO);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, windowWidth, windowHeight);
+
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		
+		glUseProgram(testShader);
+		labhelper::setUniformSlow(testShader, "waterPlaneDirection", -1.0f);
+
+
+
 	
 
 		computeShader.use();
@@ -620,39 +828,78 @@ int main(int argc, char* argv[])
 
 
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
-		/*
-		glUseProgram(quadShader);
+
+		// Change camera for the reflection
+		float cameraDistance = 2 * (cameraPosition.y - waterHeight);
+
+		cameraPosition = {cameraPosition.x, cameraPosition.y - cameraDistance, cameraPosition.z};
+		cameraDirection.y = -cameraDirection.y;
+		labhelper::setUniformSlow(testShader, "viewPos", cameraPosition);
+		glm::mat4 projMatrix = glm::perspective(glm::radians(45.0f), float(windowWidth) / float(windowHeight), nearPlane, farPlane);
+		glm::mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
+		labhelper::setUniformSlow(testShader, "projection", projMatrix);
+		labhelper::setUniformSlow(testShader, "view", viewMatrix);
+		labhelper::setUniformSlow(testShader, "model", gridMatrix);
+		grid.DrawGrid();
+
+
+		cameraPosition = { cameraPosition.x, cameraPosition.y + cameraDistance, cameraPosition.z};
+		cameraDirection.y = -cameraDirection.y;
+		labhelper::setUniformSlow(testShader, "viewPos", cameraPosition);
+		projMatrix = perspective(radians(45.0f), float(windowWidth) / float(windowHeight), 0.1f, 2000000.0f);
+		viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
+		labhelper::setUniformSlow(testShader, "projection", projMatrix);
+		labhelper::setUniformSlow(testShader, "view", viewMatrix);
+		
+
+
+
+
+		// ground, refraction (water)
+		glBindFramebuffer(GL_FRAMEBUFFER, refractionFBO);
+
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		glUseProgram(testShader);
+		labhelper::setUniformSlow(testShader, "waterPlaneDirection", 1.0f);
+			grid.DrawGrid();
+
+
+		// Draw scene
+		
+		// ground
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		glUseProgram(testShader);
+		labhelper::setUniformSlow(testShader, "waterPlaneDirection", 0.0f);
+		grid.DrawGrid();
+
+		
+		// water plane
+		glUseProgram(waterShader);
+		glBindVertexArray(waterPlaneVAO);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, reflectionTextureColorbuffer);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, refractionTextureColorbuffer);
 		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, texture1);
-		labhelper::drawFullScreenQuad();
-		*/
-		// render image to quad
-		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		//glUseProgram(screenQuad);
-		//renderQuad();
+		glBindTexture(GL_TEXTURE_2D, DUDVtexture);
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, Normaltexture);
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, refractionTextureDepthbuffer);
 
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		// Draw initial grids to the screen
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+
+		glDisable(GL_BLEND);
 		
-		//initialChunk1.DrawGridChunk();
-		//initialChunk2.DrawGridChunk();
-		//glUseProgram(normalShader);
-		//GLint modelLocNormal = glGetUniformLocation(normalShader, "model");
-		//GLint viewLocNormal = glGetUniformLocation(normalShader, "view");
-		//GLint projectionLocNormal = glGetUniformLocation(normalShader, "projection");
-		//GLint normalLengthLoc = glGetUniformLocation(normalShader, "normalLength");
-		
-		/*
-		if (true) { // Assume 'showNormals' is controlled by an input event
-			glUseProgram(normalShader);
-			glUniformMatrix4fv(viewLocNormal, 1, GL_FALSE, &viewMatrix[0].x);
-			glUniformMatrix4fv(projectionLocNormal, 1, GL_FALSE, &projMatrix[0].x);
-			glUniform1f(normalLengthLoc, 0.2f); // Set the length of the normal lines
-			// Reuse the model matrix from terrain rendering if normals are aligned with terrain vertices
-			grid.DrawGrid(); // User-defined function to draw normals
-		}
-		*/
 
+		// *** GUI
 
 		// Render overlay GUI.
 		gui();

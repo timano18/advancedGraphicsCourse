@@ -20,14 +20,19 @@ uniform vec3 materialColor3;
 uniform vec3 materialColor4;
 uniform vec3 materialColor5;
 
+uniform float waterPlaneHeight;
+uniform float waterPlaneDirection;
+
 void main()
 {
     FragPos = vec3(model * vec4(aPos, 1.0));
     Normal = mat3(transpose(inverse(model))) * aNormal;  
     TexCoords = aTexCoords;
     
-    vertColour = materialColor2;
-    // Heights ("ocean" i vertex shader, rakt istället för interpolerat)
+
+    gl_ClipDistance[0] = dot(vec4(aPos, 1.0), vec4(0.0f, 0.0f, waterPlaneDirection, waterPlaneHeight));
+
+    // Heights ("ocean" i vertex shader, rakt istÃ¤llet fÃ¶r interpolerat)
     // Snow
     if (FragPos.y > 2400) {
         vertColour = materialColor5;
@@ -37,10 +42,10 @@ void main()
         vertColour = materialColor1;
     } else
     // Sand
-    if (FragPos.y > 1500) {
+
+    if (true) {
         vertColour = materialColor4;
     }
-
     // Slope
     if (abs(Normal.x) > 0.9) {
      //   vertColour = materialColor3;

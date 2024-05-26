@@ -85,10 +85,11 @@ void Grid::generateGrid()
 	std::vector<glm::vec2> posArr;
 	glm::vec2 pos;
 
+
 	for (int i = 0; i < m_width; ++i) {
 		for (int j = 0; j < m_height; ++j) {
 
-			randValue = abs(randomGradient(i + 1, j + 1).x); // +1 för att ta bort alltid prick (0,0)
+			randValue = abs(randomGradient(i + 1, j + 1).x); // +1 fÃ¶r att ta bort alltid prick (0,0)
 			if (randValue < (randPts / (m_width * m_height))) {
 	
 				pos.x = i;
@@ -112,6 +113,7 @@ void Grid::generateGrid()
 			// Generate noise
 			//float z = perlinNoise(i, j, m_width, m_height, m_perlinScale) + voronoiNoise(i, j, m_width, m_height, posArr, m_voronoiScale);
 			//float z = perlinNoise(i * m_cellSize, j * m_cellSize, m_width, m_height, m_perlinScale );
+
 			Vertex vertex;
 			vertex.position = glm::vec3(i * m_cellSize, j * m_cellSize , 0);
 			vertex.normal = glm::vec3(0.0f, 0.0f, 0.0f);  // Ensure the normal is initialized to zero
@@ -230,8 +232,8 @@ std::vector<Grid> GridChunk::generateChunkGrids(int xStartPosChunk, int yStartPo
 
 	std::vector<Grid> grids;
 
-	// Måste göra så att t.ex. pos (x: 1, y: -5) fungerar, d.v.s. negativa koordinater
-	// "-1" fungerar bara om två närligande grids har samma "upplösning", så den hoppar med en "cellSize". Får fixa
+	// MÃ¥ste gÃ¶ra sÃ¥ att t.ex. pos (x: 1, y: -5) fungerar, d.v.s. negativa koordinater
+	// "-1" fungerar bara om tvÃ¥ nÃ¤rligande grids har samma "upplÃ¶sning", sÃ¥ den hoppar med en "cellSize". FÃ¥r fixa
 
 	for (int i = xStartPosChunk; i < xEndPosChunk; i++) {
 		for (int j = yStartPosChunk; j < yEndPosChunk; j++) {
@@ -286,7 +288,7 @@ void GridChunk::createNewChunk(int startX, int startY, int endX, int endY, unsig
 void drawChunkGrid(Grid grid) { grid.DrawGrid(); } // Draw gridChunk: Function to draw grid-array, declare before main (grid.Draw() on "for_each")
 void GridChunk::DrawGridChunk() {
 	std::for_each(m_grids.begin(), m_grids.end(), drawChunkGrid);
-	//std::cout << "Number of grids in chunk: " << m_grids.size() << '\n'; // För felsökning, kan ta bort
+	//std::cout << "Number of grids in chunk: " << m_grids.size() << '\n'; // FÃ¶r felsÃ¶kning, kan ta bort
 };
 
 // Find gridChunk center
@@ -296,7 +298,7 @@ glm::vec3 GridChunk::gridChunkCenter()
 
 	coordinates = glm::vec3(0,0,0); // Ej klar!
 
-	// Put camera at the center of created grid(s)				// Ej fått detta att fungera ännu, kameran börjar ej på (0,0). Får sätta världens origo till kanten på första chunken (eller i mitten, där kameran börjar)
+	// Put camera at the center of created grid(s)				// Ej fÃ¥tt detta att fungera Ã¤nnu, kameran bÃ¶rjar ej pÃ¥ (0,0). FÃ¥r sÃ¤tta vÃ¤rldens origo till kanten pÃ¥ fÃ¶rsta chunken (eller i mitten, dÃ¤r kameran bÃ¶rjar)
 	// orginelt: vec3 cameraPosition(186.0f, 829.0f, 1080.0f);
 	//cameraPosition.x = (startGridsX * gridWidth * cellSize) / 2 - (0.5 * gridWidth * cellSize);
 	//cameraPosition.y = (startGridsY * gridHeight * cellSize) / 2;
