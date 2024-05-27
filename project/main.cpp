@@ -100,6 +100,10 @@ float ratio = 1.0;
 float gridZ = -1500.0f;
 glm::vec3 gridSpeed;
 
+
+
+bool followGrid = true;
+
 glm::vec3 vertexFollow;
 void loadShaders(bool is_reload)
 {
@@ -303,36 +307,37 @@ bool handleEvents(void)
 	{
 		cameraPosition += cameraSpeed * deltaTime * worldUp;
 	}
-	if (state[SDL_SCANCODE_A] || state[SDL_SCANCODE_D] ||
-		state[SDL_SCANCODE_W] || state[SDL_SCANCODE_S])
+	
+	if ((state[SDL_SCANCODE_A] || state[SDL_SCANCODE_D] ||
+		state[SDL_SCANCODE_W] || state[SDL_SCANCODE_S] ) && !followGrid)
 	{
 		if (state[SDL_SCANCODE_A])
 		{
-			gridSpeed = -glm::vec3(cameraRight.x, cameraRight.z, 0) * (cameraSpeed/100.0f);
-			//cameraPosition -= cameraSpeed * deltaTime * cameraRight;
+			//gridSpeed = -glm::vec3(cameraRight.x, cameraRight.z, 0) * (cameraSpeed/100.0f);
+			cameraPosition -= cameraSpeed * deltaTime * cameraRight;
 	
 		}
 		else if (state[SDL_SCANCODE_D])
 		{
-			gridSpeed = glm::vec3(cameraRight.x, cameraRight.z, 0) * (cameraSpeed / 100.0f);
-			//cameraPosition += cameraSpeed * deltaTime * cameraRight;
+			//gridSpeed = glm::vec3(cameraRight.x, cameraRight.z, 0) * (cameraSpeed / 100.0f);
+			cameraPosition += cameraSpeed * deltaTime * cameraRight;
 		}
 		else if (state[SDL_SCANCODE_W])
 		{
-			gridSpeed = glm::vec3(cameraDirection.x, cameraDirection.z, 0) * (cameraSpeed / 100.0f);
-			//cameraPosition += cameraSpeed * deltaTime * cameraDirection;
+			//gridSpeed = glm::vec3(cameraDirection.x, cameraDirection.z, 0) * (cameraSpeed / 100.0f);
+			cameraPosition += cameraSpeed * deltaTime * cameraDirection;
 		}
 		else if (state[SDL_SCANCODE_S])
 		{
-			gridSpeed = -glm::vec3(cameraDirection.x, cameraDirection.z, 0) * (cameraSpeed / 100.0f);
-			//cameraPosition -= cameraSpeed * deltaTime * cameraDirection;
+			//gridSpeed = -glm::vec3(cameraDirection.x, cameraDirection.z, 0) * (cameraSpeed / 100.0f);
+			cameraPosition -= cameraSpeed * deltaTime * cameraDirection;
 		}
 	}
 	else
 	{
 		gridSpeed = glm::vec3(0.0);
 	}
-
+	
 	
 	if (state[SDL_SCANCODE_RIGHT] || state[SDL_SCANCODE_LEFT] ||
 		state[SDL_SCANCODE_UP] || state[SDL_SCANCODE_DOWN])
@@ -412,6 +417,7 @@ void gui()
 	ImGui::SliderInt("Grid Size", &gridSize, 10, 10000);
 	ImGui::SliderFloat("Far plane", &farPlane, 100.0f, 2000000.0f);
 	ImGui::SliderFloat("Near Plane", &nearPlane, 0.1f, 10000.0f);
+	ImGui::Checkbox("Follow", &followGrid);
 
 
 
@@ -671,8 +677,10 @@ int main(int argc, char* argv[])
 		glUnmapBuffer(GL_ARRAY_BUFFER);
 		vertexFollow = (mappedVertices[0].position);
 		*/
-
-		cameraPosition = glm::vec3(vertexFollow.x + 1200.0f, cameraPosition.y, vertexFollow.y + 1200.0f);
+		if (followGrid) {
+			cameraPosition = glm::vec3(vertexFollow.x + 1200.0f, cameraPosition.y, vertexFollow.y + 1200.0f);
+		}
+		
 		//update currentTime
 		std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
 		previousTime = currentTime;
