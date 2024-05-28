@@ -56,6 +56,7 @@ bool g_isMouseDragging = false;
 GLuint simpleShaderProgram;
 GLuint testShader;
 GLuint quadShader;
+GLuint grass_shader;
 
 
 
@@ -124,7 +125,11 @@ void loadShaders(bool is_reload)
 	{
 		quadShader = shader;
 	}
-
+	shader = labhelper::loadShaderProgram("../project/grass_shader.vert", "../project/grass_shader.frag", is_reload);
+	if (shader != 0)
+	{
+		grass_shader = shader;
+	}
 
 
 }
@@ -300,11 +305,11 @@ bool handleEvents(void)
 		cameraPosition += cameraSpeed * deltaTime * cameraRight;
 	}
 	*/
-	if(state[SDL_SCANCODE_Q])
+	if(state[SDL_SCANCODE_Q] || state[SDL_SCANCODE_LCTRL])
 	{
 		cameraPosition -= cameraSpeed * deltaTime * worldUp;
 	}
-	if(state[SDL_SCANCODE_E])
+	if(state[SDL_SCANCODE_E] || state[SDL_SCANCODE_SPACE])
 	{
 		cameraPosition += cameraSpeed * deltaTime * worldUp;
 	}
@@ -469,6 +474,8 @@ unsigned int StoneTexture;
 unsigned int SandTexture;
 unsigned int SnowTexture;
 
+unsigned int GrassPicture;
+
 void loadTextures()
 {
 	// Load "Grass"
@@ -534,6 +541,23 @@ void loadTextures()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
 	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// Load "Grass_Picture"
+
+	glGenTextures(1, &GrassPicture);
+	glBindTexture(GL_TEXTURE_2D, GrassPicture);
+
+	int GrassPWidth, GrassPHeight, GrassPNrChannels;
+	unsigned char* GrassPData = stbi_load("../textures/grass/stolen_grass2.png", &GrassPWidth, &GrassPHeight, &GrassPNrChannels, 0);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, GrassPWidth, GrassPHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, GrassPData);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
 }
 
 
@@ -651,8 +675,14 @@ int main(int argc, char* argv[])
 	// START GRASS
 
 
-	Grass grass1(50, 100, 0, 0);
-	grass1.generateGrass();
+	Grass grass1(1000, 1000, 2000, 2000, 0);
+	grass1.generateGrassSquare();
+
+	Grass grass2(1000, 1000, 2000, 1000, 0);
+	grass2.generateGrassStar();
+
+	Grass grass3(1000, 1000, 2000, 3000, 0);
+	grass3.generateGrassTriangle();
 
 
 	// STOP GRASS
@@ -740,15 +770,32 @@ int main(int argc, char* argv[])
 
 		// GRASS START
 
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		glUseProgram(grass_shader);
+
+
+
+		labhelper::setUniformSlow(grass_shader, "viewPos", cameraPosition);
+		labhelper::setUniformSlow(grass_shader, "lightDirection", lightDirection);
+		labhelper::setUniformSlow(grass_shader, "lightDiffuse", glm::vec3(1.0f));
+		labhelper::setUniformSlow(grass_shader, "lightAmbient", glm::vec3(0.1f));
+		labhelper::setUniformSlow(grass_shader, "lightSpecular", glm::vec3(1.0f));
+		labhelper::setUniformSlow(grass_shader, "materialShininess", (1.0f));
+		labhelper::setUniformSlow(grass_shader, "projection", projMatrix);
+		labhelper::setUniformSlow(grass_shader, "view", viewMatrix);
+		labhelper::setUniformSlow(grass_shader, "model", gridMatrix);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, GrassPicture);
 
 		grass1.DrawGrass();
-
-
+		grass2.DrawGrass();
+		grass3.DrawGrass();
 		// GRASS STOP
 
 		// Render overlay GUI.
 		gui();
-
 
 		// Finish the frame and render the GUI
 		labhelper::finishFrame();
