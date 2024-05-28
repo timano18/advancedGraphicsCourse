@@ -28,6 +28,7 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 #include "noise.h"
 #include "myHelper/shader_c.h"
 #include "myHelper/shader_s.h"
+#include "grass.h"
 
 
 
@@ -647,7 +648,14 @@ int main(int argc, char* argv[])
 	// Textures
 	loadTextures();
 
+	// START GRASS
 
+
+	Grass grass1(50, 100, 0, 0);
+	grass1.generateGrass();
+
+
+	// STOP GRASS
 
 
 
@@ -655,10 +663,6 @@ int main(int argc, char* argv[])
 	// Start render-loop
 	while (!stopRendering)
 	{
-		//position.x = cameraPosition.x;
-		// Combine the initial rotation with the new position
-		//gridMatrix = initialRotation; // Reset to initial rotation
-		//gridMatrix = glm::translate(gridMatrix, position); // Apply new translation
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
 		glm::vec3* ptr = (glm::vec3*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::vec3), GL_MAP_READ_BIT);
 
@@ -669,14 +673,7 @@ int main(int argc, char* argv[])
 
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-		/*
 
-		glBindBuffer(GL_ARRAY_BUFFER, grid.getVBO());
-		mappedVertices = (Vertex*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
-	
-		glUnmapBuffer(GL_ARRAY_BUFFER);
-		vertexFollow = (mappedVertices[0].position);
-		*/
 		if (followGrid) {
 			cameraPosition = glm::vec3(vertexFollow.x + 1200.0f, cameraPosition.y, vertexFollow.y + 1200.0f);
 		}
@@ -722,7 +719,7 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(testShader, "projection", projMatrix);
 		labhelper::setUniformSlow(testShader, "view", viewMatrix);
 		labhelper::setUniformSlow(testShader, "model", gridMatrix);
-		grid.DrawGrid();
+		//grid.DrawGrid();
 	
 
 		computeShader.use();
@@ -736,43 +733,18 @@ int main(int argc, char* argv[])
 		
 		// SSBO for computeshader
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, grid.getVBO());
-		glDispatchCompute(57600, 1, 1);
+		//glDispatchCompute(57600, 1, 1);
 
 
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
-		/*
-		glUseProgram(quadShader);
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, texture1);
-		labhelper::drawFullScreenQuad();
-		*/
-		// render image to quad
-		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		//glUseProgram(screenQuad);
-		//renderQuad();
+
+		// GRASS START
 
 
-		// Draw initial grids to the screen
-		
-		//initialChunk1.DrawGridChunk();
-		//initialChunk2.DrawGridChunk();
-		//glUseProgram(normalShader);
-		//GLint modelLocNormal = glGetUniformLocation(normalShader, "model");
-		//GLint viewLocNormal = glGetUniformLocation(normalShader, "view");
-		//GLint projectionLocNormal = glGetUniformLocation(normalShader, "projection");
-		//GLint normalLengthLoc = glGetUniformLocation(normalShader, "normalLength");
-		
-		/*
-		if (true) { // Assume 'showNormals' is controlled by an input event
-			glUseProgram(normalShader);
-			glUniformMatrix4fv(viewLocNormal, 1, GL_FALSE, &viewMatrix[0].x);
-			glUniformMatrix4fv(projectionLocNormal, 1, GL_FALSE, &projMatrix[0].x);
-			glUniform1f(normalLengthLoc, 0.2f); // Set the length of the normal lines
-			// Reuse the model matrix from terrain rendering if normals are aligned with terrain vertices
-			grid.DrawGrid(); // User-defined function to draw normals
-		}
-		*/
+		grass1.DrawGrass();
 
+
+		// GRASS STOP
 
 		// Render overlay GUI.
 		gui();
