@@ -8,8 +8,8 @@ out vec4 FragColor;
 in vec3 FragPos;    // Position of the fragment
 in vec3 Normal;     // Normal vector of the fragment
 in vec2 TexCoords;  // Texture coordinates
-
-
+in vec4 vertexPosition;
+in float visibility;
 
 uniform vec3 viewPos;
 
@@ -28,7 +28,7 @@ uniform float materialShininess;
 
 vec3 CalcDirLight(vec3 normal, vec3 viewDir)
 {
-    vec3 lightDir = normalize(lightDirection);
+    vec3 lightDir = -normalize(lightDirection);
 
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
@@ -94,5 +94,8 @@ void main()
     vec3 viewDir = normalize(viewPos - FragPos);
     vec3 result = CalcDirLight(norm, viewDir);
 
-    FragColor = vec4(vec3(result), 1.0f); // combining the two lighting components
+
+    vec3 fogColor = vec3(0.0, 0.0, 1.0);
+    FragColor = mix(vec4(fogColor, 1.0), vec4(result, 1.0), visibility);
+    //FragColor = vec4(vec3(result), 1.0f); // combining the two lighting components
 }
