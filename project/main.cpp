@@ -56,6 +56,7 @@ GLuint simpleShaderProgram;
 GLuint testShader;
 GLuint quadShader;
 GLuint waterShader;
+GLuint skyShader;
 
 
 
@@ -129,6 +130,11 @@ void loadShaders(bool is_reload)
 	if (shader != 0)
 	{
 		waterShader = shader;
+	}
+	shader = labhelper::loadShaderProgram("../project/skyShader.vert", "../project/skyShader.frag", is_reload);
+	if (shader != 0)
+	{
+		skyShader = shader;
 	}
 
 }
@@ -715,7 +721,7 @@ int main(int argc, char* argv[])
 	// END
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-
+	glEnable(GL_FRAMEBUFFER_SRGB);
 	
 	// Start render-loop
 	while (!stopRendering)
@@ -762,10 +768,17 @@ int main(int argc, char* argv[])
 		// render to window
 		display();
 
+
 		
 		lightDirection = rotateSun(sunangle);
 		glm::mat4 projMatrix = glm::perspective(glm::radians(45.0f), float(windowWidth) / float(windowHeight), nearPlane, farPlane);
 		glm::mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
+
+		glUseProgram(skyShader);
+		labhelper::setUniformSlow(skyShader, "projection", projMatrix);
+		labhelper::setUniformSlow(skyShader, "view", viewMatrix);
+		labhelper::setUniformSlow(skyShader, "sunAngle", rotateSun(sunangle));
+		labhelper::drawFullScreenQuad();
 
 		// Set uniforms for testshader. 
 		glUseProgram(testShader); 
@@ -933,7 +946,6 @@ int main(int argc, char* argv[])
 		
 		glBindVertexArray(0);
 	
-
 
 
 
