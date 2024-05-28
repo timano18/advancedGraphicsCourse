@@ -124,8 +124,6 @@ void loadShaders(bool is_reload)
 		quadShader = shader;
 	}
 
-
-
 }
 
 
@@ -740,6 +738,7 @@ int main(int argc, char* argv[])
 
 
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
 		/*
 		glUseProgram(quadShader);
 		glActiveTexture(GL_TEXTURE2);
