@@ -35,6 +35,24 @@ Grass::Grass(unsigned int width, unsigned int height, int xPos, int yPos, int zP
 // generateGrid method implementation
 void Grass::generateGrassSquare()
 {
+	// generate a list of 100 grass locations (in a grid)
+	int index = 0;
+	float offset = 500.0f;
+	for (int y = -10; y < 10; y += 2) {
+		for (int x = -10; x < 10; x += 2) {
+			translation.x = (float)x * offset;
+			translation.y = (float)y * offset;
+			translations[index++] = translation;
+		}
+	}
+	// store instance data in an array buffer
+	glGenBuffers(1, &instanceVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 100, &translations[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+
+	// **************
 
 	float startX = m_xPos - 0.5 * m_width;
 	float startY = m_yPos - 0.5 * m_width;
@@ -75,25 +93,40 @@ void Grass::generateGrassSquare()
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
+	glEnableVertexAttribArray(2);
+	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO); // this attribute comes from a different vertex buffer
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glVertexAttribDivisor(2, 1); // tell OpenGL this is an instanced vertex attribute.
+
 	glGenBuffers(1, &EBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
-	// Pos
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-
-	// TexCoords
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-
-
-
-	glBindVertexArray(0);
 }
 
 void Grass::generateGrassStar()
-{
+{	
+
+	// generate a list of 100 grass locations (in a grid)
+	int index = 0;
+	float offset = 500.0f;
+	for (int y = -10; y < 10; y += 2) {
+		for (int x = -10; x < 10; x += 2) {
+			translation.x = (float)x * offset;
+			translation.y = (float)y * offset;
+			translations[index++] = translation;
+		}
+	}
+	// store instance data in an array buffer
+	glGenBuffers(1, &instanceVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 100, &translations[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+
+	// **************
+
 
 	float startX1 = m_xPos - 0.5 * m_width * cos(0 * (PI/180));
 	float startY1 = m_yPos - 0.5 * m_width * sin(0 * (PI / 180));
@@ -146,48 +179,31 @@ void Grass::generateGrassStar()
 
 	// 1
 	indices.push_back(0);
-	normals.push_back(1.0);
 	indices.push_back(1);
-	normals.push_back(1.0);
 	indices.push_back(2);
-	normals.push_back(1.0);
 
 	indices.push_back(3);
-	normals.push_back(1.0);
 	indices.push_back(4);
-	normals.push_back(1.0);
 	indices.push_back(5);
-	normals.push_back(1.0);
-
+	
 	// 2
 	indices.push_back(6);
-	normals.push_back(1.0);
 	indices.push_back(7);
-	normals.push_back(1.0);
+
 	indices.push_back(8);
-	normals.push_back(1.0);
 
 	indices.push_back(9);
-	normals.push_back(1.0);
 	indices.push_back(10);
-	normals.push_back(1.0);
 	indices.push_back(11);
-	normals.push_back(1.0);
 
 	// 3
 	indices.push_back(12);
-	normals.push_back(1.0);
 	indices.push_back(13);
-	normals.push_back(1.0);
 	indices.push_back(14);
-	normals.push_back(1.0);
 
 	indices.push_back(15);
-	normals.push_back(1.0);
 	indices.push_back(16);
-	normals.push_back(1.0);
 	indices.push_back(17);
-	normals.push_back(1.0);
 	
 
 	glGenVertexArrays(1, &VAO);
@@ -200,6 +216,12 @@ void Grass::generateGrassStar()
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
+	glEnableVertexAttribArray(2);
+	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO); // this attribute comes from a different vertex buffer
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glVertexAttribDivisor(2, 1); // tell OpenGL this is an instanced vertex attribute.
+
 	glGenBuffers(1, &EBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
@@ -209,6 +231,27 @@ void Grass::generateGrassStar()
 
 void Grass::generateGrassTriangle()
 {
+	// generate a list of 100 grass locations (in a grid)
+	int index = 0;
+	float offset = 500.0f;
+	for (int y = -10; y < 10; y += 2) {
+		for (int x = -10; x < 10; x += 2) {
+			translation.x = (float)x * offset;
+			translation.y = (float)y * offset;
+			translations[index++] = translation;
+		}
+	}
+	// store instance data in an array buffer
+	glGenBuffers(1, &instanceVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 100, &translations[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+
+	// **************
+
+
+
 
 	float startX1 = (m_xPos - 0.5 * m_width * cos(0 * (PI / 180)));
 	float startY1 = (m_yPos - 0.5 * m_width * sin(0 * (PI / 180))) - 0.2 * m_width;
@@ -298,6 +341,12 @@ void Grass::generateGrassTriangle()
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
+	glEnableVertexAttribArray(2);
+	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO); // this attribute comes from a different vertex buffer
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glVertexAttribDivisor(2, 1); // tell OpenGL this is an instanced vertex attribute.
+
 	glGenBuffers(1, &EBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
@@ -305,9 +354,11 @@ void Grass::generateGrassTriangle()
 	glBindVertexArray(0);
 }
 
-// Draw grass
+// Draw grass (instancing)
 void Grass::DrawGrass()
 {
 	glBindVertexArray(VAO);
-	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+	//glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+	//glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 100); // 100 triangles of 6 vertices each
+	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0, 100);
 }

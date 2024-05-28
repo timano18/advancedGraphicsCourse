@@ -23,5 +23,7 @@ private:
 	int m_xPos;
 	int m_yPos;
 	int m_zPos;
-	GLuint VAO, VBO, EBO;
+	glm::vec2 translations[100];
+	glm::vec2 translation;
+	GLuint VAO, VBO, EBO, instanceVBO;
 };

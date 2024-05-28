@@ -675,13 +675,13 @@ int main(int argc, char* argv[])
 	// START GRASS
 
 
-	Grass grass1(1000, 1000, 2000, 2000, 0);
+	Grass grass1(1000, 1000, 0, 0, 0);
 	grass1.generateGrassSquare();
 
-	Grass grass2(1000, 1000, 2000, 1000, 0);
+	Grass grass2(1000, 1000, 10000, 0, 0);
 	grass2.generateGrassStar();
 
-	Grass grass3(1000, 1000, 2000, 3000, 0);
+	Grass grass3(1000, 1000, 10000, 10000, 0);
 	grass3.generateGrassTriangle();
 
 
