@@ -1177,8 +1177,8 @@ int main(int argc, char* argv[])
 		glBindTexture(GL_TEXTURE_2D, GrassPicture);
 
 		grass1.DrawGrass();
-		grass2.DrawGrass();
-		grass3.DrawGrass();
+		//grass2.DrawGrass();
+		//grass3.DrawGrass();
 		// GRASS STOP
 
 
