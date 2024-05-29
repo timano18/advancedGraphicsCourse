@@ -16,8 +16,8 @@ unsigned int s_height_Chunk = 3;
 
 // For grid
 int divider = 1;
-unsigned int s_width = 240;
-unsigned int s_height = 240;
+unsigned int s_width = 2400;
+unsigned int s_height = 2400;
 int s_xStartPos = -100;
 int s_yStartPos = -100;
 float s_cellSize = 10.0f;

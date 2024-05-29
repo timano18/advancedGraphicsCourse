@@ -9,45 +9,41 @@ out vec3 Normal;
 out vec2 TexCoords;
 
 out vec3 vertColour;
+out vec4 vertexPosition; 
+out float visibility;
+out vec4 clipSpace;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-uniform vec3 materialColor1;
-uniform vec3 materialColor2;
-uniform vec3 materialColor3;
-uniform vec3 materialColor4;
-uniform vec3 materialColor5;
+
 
 uniform float waterPlaneHeight;
 uniform float waterPlaneDirection;
 
+
+const float density = 0.00006;
+const float gradient = 3.5;
+
 void main()
 {
+
+    vertexPosition = view * model * vec4(aPos, 1.0);
     FragPos = vec3(model * vec4(aPos, 1.0));
     Normal = mat3(transpose(inverse(model))) * aNormal;  
     TexCoords = aTexCoords;
 
-   // gl_ClipDistance[0] = dot(vec4(aPos, 1.0), vec4(0.0f, 0.0f, waterPlaneDirection, waterPlaneHeight));
+    gl_ClipDistance[0] = dot(vec4(aPos, 1.0), vec4(0.0f, 0.0f, waterPlaneDirection, waterPlaneHeight));
     
     // Heights ("ocean" i vertex shader, rakt istället för interpolerat)
     // Snow
-    if (FragPos.y > 300) {
-        vertColour = materialColor5;
-    } else 
-    // Grass
-    if (FragPos.y > 100) {
-        vertColour = materialColor1;
-    } else
-    // Sand
-    if (true) {
-        vertColour = materialColor4;
-    }
-    // Slope
-    if (abs(Normal.x) > 0.35) {
-        vertColour = materialColor3;
-    }
+
+    float distance = length(vertexPosition.xyz);
+    visibility = exp(-pow((distance*density), gradient));
+    visibility = clamp(visibility,0.0,1.0);
 
     gl_Position = projection * view * vec4(FragPos, 1.0);
+    clipSpace = gl_Position;
+
 }
