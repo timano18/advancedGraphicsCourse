@@ -55,6 +55,7 @@ void main() {
     vec4 texColor = texture(grassPicture, TexCoords);
     if(texColor.a < 0.1)
         discard;
-
+    texColor = vec4(texColor.r *0.9, texColor.g*1.1, texColor.b*0.9, texColor.a);
     FragColor = texColor; // combining the two lighting components
+    //FragColor = vec4(0.0, 1.0, 0.0, 1.0);
 }
