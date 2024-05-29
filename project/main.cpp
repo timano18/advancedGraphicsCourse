@@ -106,6 +106,10 @@ glm::vec3 gridSpeed;
 
 bool followGrid = false;
 bool backFaceCulling = false;
+bool animateSun = false;
+
+
+glm::vec3 oceanPosition(0.0f);
 
 glm::vec3 vertexFollow;
 void loadShaders(bool is_reload)
@@ -369,6 +373,7 @@ bool handleEvents(void)
 		{
 			gridSpeed.x = -1.0;
 		}
+		
 	}
 	else
 	{
@@ -419,6 +424,7 @@ void gui()
 	ImGui::Text("Grid Pos:  x: %.3f  y: %.3f  z: %.3f", gridSpeed.x, gridSpeed.y, gridSpeed.z);
 	ImGui::Text("Vertex Follow:  x: %.3f  y: %.3f  z: %.3f", vertexFollow.x, vertexFollow.y, vertexFollow.z);
 	ImGui::SliderFloat("Sun angle", &sunangle, 0.0f, 2.0f);
+	ImGui::Checkbox("Animate sun", &animateSun);
 	ImGui::Text("Light Direction:  x: %.3f  y: %.3f  z: %.3f", lightDirection.x, lightDirection.y, lightDirection.z);
 	ImGui::SliderFloat("simpexScale", &simpexScale, 0.1f, 3000.0f);
 	ImGui::SliderFloat("worleyScale", &worleyScale, 0.1f, 3000.0f);
@@ -575,6 +581,12 @@ int main(int argc, char* argv[])
 	std::cout << "Initial grid(s); generation time: " << duration.count() << std::endl;
 	
 
+	// Test equation
+	for (int i = 0; i < 1000; i++)
+	{
+		float h = (3 * glm::abs(i / 10.0f - glm::floor(i / 10.0f + 0.5f))) + 0.25;
+		std::cout << h << std::endl;
+	}
 
 	// Debug
 	/*
@@ -593,6 +605,8 @@ int main(int argc, char* argv[])
 	gridSpeed = glm::vec3(0.0f, 0.0f, 0.0f); // Grid position
 	glm::mat4 initialRotation = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(90.0f, 0.0f, 0.0f)); // Example rotation
 	gridMatrix = initialRotation; // Applying initial rotation
+
+	glm::mat4 waterMatrix = initialRotation;
 
 
 											// End clock, create inition chunks
@@ -806,7 +820,8 @@ int main(int argc, char* argv[])
 
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-	
+		oceanPosition = glm::vec3(vertexFollow.x , vertexFollow.y, oceanPosition.z);
+		waterMatrix = glm::translate(initialRotation, oceanPosition);
 		if (followGrid) {
 			cameraPosition = glm::vec3(vertexFollow.x + 12000.0f, cameraPosition.y, vertexFollow.y + 12000.0f);
 		}
@@ -825,6 +840,7 @@ int main(int argc, char* argv[])
 		currentTime = timeSinceStart.count();
 		deltaTime = currentTime - previousTime;
 
+		
 		// check events (keyboard among other)
 		stopRendering = handleEvents();
 
@@ -834,6 +850,11 @@ int main(int argc, char* argv[])
 		// render to window
 		display();
 
+
+		if (animateSun)
+		{
+			sunangle = (3 * glm::abs(currentTime / 200.0f - glm::floor(currentTime / 200.0f + 0.5f))) +0.25;
+		}
 
 		
 		lightDirection = rotateSun(sunangle);
@@ -1007,7 +1028,7 @@ int main(int argc, char* argv[])
 		glUseProgram(waterShader);
 		labhelper::setUniformSlow(waterShader, "projection", projMatrix);
 		labhelper::setUniformSlow(waterShader, "view", viewMatrix);
-		labhelper::setUniformSlow(waterShader, "model", gridMatrix);
+		labhelper::setUniformSlow(waterShader, "model", waterMatrix);
 		labhelper::setUniformSlow(waterShader, "reflectionTexture", 0);
 		labhelper::setUniformSlow(waterShader, "refractionTexture", 1);
 		labhelper::setUniformSlow(waterShader, "dudvMap", 2);

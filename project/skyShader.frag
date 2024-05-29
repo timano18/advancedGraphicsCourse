@@ -198,6 +198,10 @@ float kInfinity = 1e20;
     vec4 viewSpace = invViewProjection * clipSpace;
     vec3 worldDir = normalize(viewSpace.xyz / viewSpace.w);
 
+    float tiltAmount = 0.2; // Adjust this value to control the amount the horizon is lowered
+    worldDir.y += tiltAmount;
+    worldDir = normalize(worldDir);
+
     // Adjust camera position to be above the Earth's surface
     vec3 cameraPosition = vec3(0.0, earthRadius + 1.0, 0.0);
 
