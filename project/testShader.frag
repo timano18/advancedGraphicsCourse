@@ -8,8 +8,9 @@ out vec4 FragColor;
 in vec3 FragPos;    // Position of the fragment
 in vec3 Normal;     // Normal vector of the fragment
 in vec2 TexCoords;  // Texture coordinates
-
-
+in vec4 vertexPosition;
+in float visibility;
+in vec4 clipSpace;
 
 uniform vec3 viewPos;
 
@@ -22,13 +23,14 @@ layout(binding=0) uniform sampler2D grassTexture;
 layout(binding=1) uniform sampler2D stoneTexture;
 layout(binding=2) uniform sampler2D sandTexture;
 layout(binding=3) uniform sampler2D snowTexture;
+layout(binding=4) uniform sampler2D skyTexture;
 
 uniform float materialShininess;
 
 
 vec3 CalcDirLight(vec3 normal, vec3 viewDir)
 {
-    vec3 lightDir = normalize(lightDirection);
+    vec3 lightDir = -normalize(lightDirection);
 
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
@@ -40,10 +42,10 @@ vec3 CalcDirLight(vec3 normal, vec3 viewDir)
     // combine results
     vec3 materialColor;
 
-    float snowStart = 225;
-    float grassStop = 200;
-    float grassStart = 75;
-    float sandStop = 50;
+    float snowStart = 400;
+    float grassStop = 250;
+    float grassStart = 0;
+    float sandStop = -100;
 
     // Heights ("ocean" i vertex shader, rakt istället för interpolerat)
     // Snow
@@ -90,9 +92,19 @@ vec3 CalcDirLight(vec3 normal, vec3 viewDir)
 
 void main()
 {    
+    vec2 normalizedDeviceSpace = (clipSpace.xy/clipSpace.w);
+    vec2 screenSpace = normalizedDeviceSpace/2 + 0.5;
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(viewPos - FragPos);
     vec3 result = CalcDirLight(norm, viewDir);
-
-    FragColor = vec4(vec3(result), 1.0f); // combining the two lighting components
+    
+    vec4 skyColor = texture(skyTexture, vec2(screenSpace.x, -screenSpace.y));
+    vec4 terrainColor = mix(vec4(result,1.0), skyColor,1.0- visibility);
+  
+    
+    
+    vec3 fogColor = texture(skyTexture, screenSpace).xyz;
+    FragColor = mix(vec4(fogColor, 1.0), vec4(result, 1.0), visibility);
+    //FragColor = terrainColor;
+    //FragColor = vec4(vec3(result), 1.0f); // combining the two lighting components
 }
