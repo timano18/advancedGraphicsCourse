@@ -466,20 +466,28 @@ int main(int argc, char* argv[])
 	//testTree1.printTree();
 
 	
-	//Tree testTree2;
-	//testTree2.moveTreeBase(100, 0, 0);
-	//testTree2.generateTree(2);
+	Tree testTree2;
+	testTree2.moveTreeBase(100, 0, 0);
+	testTree2.setTree(4, { 'B' });
+	testTree2.generateTree(2);
 	//testTree2.printTree();
 
-	//Tree testTree3;
-	//testTree3.moveTreeBase(200, 0, 0);
-	//testTree3.generateTree(3);
+	Tree testTree3;
+	testTree3.moveTreeBase(200, 0, 0);
+	testTree3.setTree(4, { 'B' });
+	testTree3.generateTree(1);
+
+	Tree testTree4;
+	testTree4.moveTreeBase(300, 0, 0);
+	testTree4.setTree(4, { 'B' });
+	testTree4.generateTree(4);
 	//testTree3.printTree();
 	
 
 	testTree1.toCoords2D();
-	//testTree2.toCoords2D();
-	//testTree3.toCoords2D();
+	testTree2.toCoords2D();
+	testTree3.toCoords2D();
+	testTree4.toCoords2D();
 
 	auto stop = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(stop - start);
@@ -585,8 +593,9 @@ int main(int argc, char* argv[])
 		//initialChunk2.drawGridChunk();
 
 		testTree1.drawTree();
-		//testTree2.drawTree();
-		//testTree3.drawTree();
+		testTree2.drawTree();
+		testTree3.drawTree();
+		testTree4.drawTree();
 
 		// Render overlay GUI.
 		gui();
