@@ -4,7 +4,7 @@
 class Grass {
 public:
 	Grass();
-	Grass(unsigned int width, unsigned int height, int xPos, int yPos, int zPos);
+	Grass(unsigned int width, unsigned int height, int xPos, int yPos, int num, int zPos);
 	void Grass::generateGrassSquare();
 	void Grass::generateGrassStar();
 	void Grass::generateGrassTriangle();
@@ -22,6 +22,7 @@ private:
 	unsigned int m_height;
 	int m_xPos;
 	int m_yPos;
+	int m_num;
 	int m_zPos;
 	GLuint VAO, VBO, EBO, instanceVBO;
 };

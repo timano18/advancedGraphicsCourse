@@ -23,8 +23,8 @@ layout(binding=0) uniform sampler2D grassPicture;
 uniform float materialShininess;
 
 
-vec3 CalcDirLight(vec3 normal, vec3 viewDir)
-{
+vec3 CalcDirLight(vec3 normal, vec3 viewDir) {
+
     vec3 lightDir = normalize(lightDirection);
 
     // diffuse shading
@@ -46,8 +46,8 @@ vec3 CalcDirLight(vec3 normal, vec3 viewDir)
 }
 
 
-void main()
-{    
+void main() {    
+
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(viewPos - FragPos);
     vec3 result = CalcDirLight(norm, viewDir);

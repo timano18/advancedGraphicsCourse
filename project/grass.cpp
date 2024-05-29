@@ -18,20 +18,23 @@ Grass::Grass()
 	m_height = 10;
 	m_xPos = 0;
 	m_yPos = 0;
+	m_num = 1;
 	m_zPos = 0;
 }
 
 // Parameterized constructor implementation
-Grass::Grass(unsigned int width, unsigned int height, int xPos, int yPos, int zPos)
+Grass::Grass(unsigned int width, unsigned int height, int xPos, int yPos, int num, int zPos)
 {
 
 	m_width = width;
 	m_height = height;
 	m_xPos = xPos; 
 	m_yPos = yPos;
+	m_num = num;
 	m_zPos = -zPos;
 }
 
+/*
 // *** Generate grass ***
 // generateGrid method implementation
 void Grass::generateGrassSquare()
@@ -107,21 +110,24 @@ void Grass::generateGrassSquare()
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
 }
+*/
 
 void Grass::generateGrassStar()
 {	
 	// generate a list of 100 grass locations (in a grid)
-	glm::vec2 translations[10000];
-	glm::vec2 translation;
-	float offset = 50.0f;
+	glm::vec3 translations[10000]; // val >= m_num
+	glm::vec3 translation;
+	float offsetXY = 200.0f;
+	float offsetZ = 50.0f;
 	float perlinOffset = 3.0f;
 	float seed = 0.333;
 
 	int index = 0;
-	for (int y = 0; y < 200; y += 2) {
-		for (int x = 0; x < 200; x += 2) {
-			translation.x = ((float)x + perlinNoiseGen((float)x + seed, (float)y + seed) * perlinOffset) * offset;
-			translation.y = ((float)y + perlinNoiseGen((float)x + seed, (float)y + seed) * perlinOffset) * offset;
+	for (int y = 0; y < sqrt(m_num); y++) {
+		for (int x = 0; x < sqrt(m_num); x++) {
+			translation.x = ((float)x + perlinNoiseGen((float)x + seed, (float)y + seed) * perlinOffset) * offsetXY;
+			translation.y = ((float)y + perlinNoiseGen((float)x + seed, (float)y + seed) * perlinOffset) * offsetXY;
+			translation.z = abs(perlinNoiseGen((float)x + seed, (float)y + seed) * perlinOffset) * offsetZ;
 			translations[index++] = translation;
 		}
 	}
@@ -224,7 +230,7 @@ void Grass::generateGrassStar()
 
 	glEnableVertexAttribArray(2);
 	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO); // this attribute comes from a different vertex buffer
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glVertexAttribDivisor(2, 1); // tell OpenGL this is an instanced vertex attribute.
 
@@ -235,6 +241,7 @@ void Grass::generateGrassStar()
 	glBindVertexArray(0);
 }
 
+/*
 void Grass::generateGrassTriangle()
 {
 	// generate a list of 100 grass locations (in a grid)
@@ -358,6 +365,7 @@ void Grass::generateGrassTriangle()
 
 	glBindVertexArray(0);
 }
+*/
 
 // Draw grass (instancing)
 void Grass::DrawGrass()
@@ -365,5 +373,5 @@ void Grass::DrawGrass()
 	glBindVertexArray(VAO);
 	//glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 	//glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 100); // 100 triangles of 6 vertices each
-	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0, 10000);
+	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0, m_num);
 }

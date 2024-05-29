@@ -30,7 +30,7 @@ extern "C" _declspec(dllexport) unsigned int NvOptimusEnablement = 0x00000001;
 #include "myHelper/shader_s.h"
 #include "grass.h"
 
-
+#define PI 3.14159265
 
 
 
@@ -678,12 +678,13 @@ int main(int argc, char* argv[])
 	//Grass grass1(1000, 1000, 0, 0, 0);
 	//grass1.generateGrassSquare();
 
-	Grass grass2(100, 100, 0, 0, 0);
+	Grass grass2(100, 100, 0, 0, 10000, 0);
 	grass2.generateGrassStar();
 
 	//Grass grass3(1000, 1000, 10000, 10000, 0);
 	//grass3.generateGrassTriangle();
 
+	float time = 0.0;
 
 	// STOP GRASS
 
@@ -771,10 +772,14 @@ int main(int argc, char* argv[])
 		// GRASS START
 
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 		glUseProgram(grass_shader);
 
-
+		// count up time (for wind)
+		time = time + 0.1f * (PI / 180.0f); // Degrees
+		if (time > (180 * (PI / 180.0f))) {
+			time = -180.0f * (PI / 180.0f);
+		}
+		//std::cout << time / (PI / 180.0f) << " degrees" << '\n';
 
 		labhelper::setUniformSlow(grass_shader, "viewPos", cameraPosition);
 		labhelper::setUniformSlow(grass_shader, "lightDirection", lightDirection);
@@ -785,6 +790,7 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(grass_shader, "projection", projMatrix);
 		labhelper::setUniformSlow(grass_shader, "view", viewMatrix);
 		labhelper::setUniformSlow(grass_shader, "model", gridMatrix);
+		labhelper::setUniformSlow(grass_shader, "time", time);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GrassPicture);
