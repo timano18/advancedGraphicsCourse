@@ -851,7 +851,20 @@ int main(int argc, char* argv[])
 
 
 
+	// SSBOs for grass positions
+	GLuint grassBuffer, counterBuffer;
+	glGenBuffers(1, &grassBuffer);
+	glGenBuffers(1, &counterBuffer);
 
+	// Allocate buffer storage
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, grassBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, 100000 * sizeof(glm::vec3), NULL, GL_DYNAMIC_DRAW);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, counterBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
+	GLuint zero = 0;
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, counterBuffer);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(GLuint), &zero);
 	
 	// Start render-loop
 	while (!stopRendering)
@@ -1129,8 +1142,10 @@ int main(int argc, char* argv[])
 		
 		// SSBO for computeshader
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, grid.getVBO());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, grassBuffer);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, counterBuffer);
 
-    glDispatchCompute(57600, 1, 1);
+		glDispatchCompute(57600, 1, 1);
 
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 

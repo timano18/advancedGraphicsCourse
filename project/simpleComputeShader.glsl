@@ -39,6 +39,13 @@ layout(std430, binding = 1) buffer VertexFollowBuffer {
 	vec3 vertexFollow;
 };
 
+layout (std430, binding = 2) buffer GrassPositions {
+    vec3 positions[]; // (x, y, z, w) where w could be used for additional data if needed
+};
+
+layout(std430, binding = 3) buffer CounterBuffer {
+    uint grassCount;
+};
 
 
 // ----------------------------------------------------------------------------
@@ -344,9 +351,6 @@ void main() {
     //vertices[idx].positionZ += translation.z;
 
 
-
-
-
 	vec3 off = vec3(1.0, 1.0, 0.0) * cellsize;
 	float hL = calculateZ(vec2(vertices[idx].positionX - off.x, vertices[idx].positionY - off.z));
 	float hR = calculateZ(vec2(vertices[idx].positionX + off.x, vertices[idx].positionY + off.z));
@@ -361,6 +365,11 @@ void main() {
 	vec3 normalized = normalize(vec3(vertices[idx].normalX,vertices[idx].normalY,vertices[idx].normalZ));
 	
 
-	
+	  // Determine where to place grass
+    float heightThreshold = 1.0; // Example threshold for placing grass
+    if (vertices[idx].positionZ > heightThreshold) {
+        uint grassIndex = atomicAdd(grassCount, 1);
+        positions[grassIndex] = vec3(vertices[idx].positionX, vertices[idx].positionY, vertices[idx].positionZ);
+    }
 
 }

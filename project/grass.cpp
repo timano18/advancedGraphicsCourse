@@ -24,7 +24,7 @@ Grass::Grass()
 	// Placement
 	m_offsetXY = 50.0f;
 	m_offsetZ = 50.0f;
-	m_perlinOffset = 3.0f;
+	m_perlinOffset = 300.0f;
 	m_seed = 0.333;
 }
 
