@@ -385,13 +385,13 @@ bool handleEvents(void)
 		}
 		
 	}
-	if (demoCamera)
-	{
-		gridSpeed.x = 1.0;
-	}
 	else
 	{
 		gridSpeed = glm::vec3(0.0);
+	}
+	if (demoCamera)
+	{
+		gridSpeed.x = 1.0;
 	}
 	
 	
@@ -836,14 +836,15 @@ int main(int argc, char* argv[])
 	// END
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	Grass grass1(100, 100, 0, 0, 10000, 0);
-	grass1.generateGrassSquare();
+	Grass grass1(100, 100, 0, 0, 100*100, 0);
+	grass1.initializeBuffers();
+	//grass1.generateGrassSquare();
 
-	Grass grass2(100, 100, 5000, 0, 10000, 0);
-	grass2.generateGrassStar();
+	//Grass grass2(100, 100, 5000, 0, 10000, 0);
+	//grass2.generateGrassStar();
 
-	Grass grass3(100, 100, 0, 5000, 10000, 0);
-	grass3.generateGrassTriangle();
+	//Grass grass3(100, 100, 0, 5000, 10000, 0);
+	//grass3.generateGrassTriangle();
 
 	float time = 0.0;
 
@@ -858,13 +859,11 @@ int main(int argc, char* argv[])
 
 	// Allocate buffer storage
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, grassBuffer);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 100000 * sizeof(glm::vec3), NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, 5760000 * sizeof(glm::vec3), NULL, GL_DYNAMIC_DRAW);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, counterBuffer);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
-	GLuint zero = 0;
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, counterBuffer);
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(GLuint), &zero);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, 2*sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
+	
 	
 	// Start render-loop
 	while (!stopRendering)
@@ -1147,6 +1146,11 @@ int main(int argc, char* argv[])
 
 		glDispatchCompute(57600, 1, 1);
 
+		GLuint grassCount = 5760000;
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, counterBuffer);
+		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(GLuint), &grassCount);
+		std::cout << grassCount << std::endl;
+
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		// GRASS START
@@ -1176,7 +1180,13 @@ int main(int argc, char* argv[])
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GrassPicture);
 
-		grass1.DrawGrass();
+		//grass1.renderGrassOnTerrain(grid.getVBO(), grassCount);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, grassBuffer);
+		//grass1.renderGrassOnTerrain(grid.getVBO(), grassCount);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, counterBuffer);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, 2 * sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
+
+		//grass1.DrawGrass();
 		//grass2.DrawGrass();
 		//grass3.DrawGrass();
 		// GRASS STOP

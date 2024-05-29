@@ -9,6 +9,8 @@ public:
 	void Grass::generateGrassStar();
 	void Grass::generateGrassTriangle();
 	void Grass::DrawGrass();
+	void Grass::initializeBuffers();
+	void Grass::renderGrassOnTerrain(GLuint posBuffer, GLuint grassCount);
 
 private:
 	struct Vertex {
