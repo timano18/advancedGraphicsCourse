@@ -17,6 +17,7 @@ layout(binding=1) uniform sampler2D refractionTexture;
 layout(binding=2) uniform sampler2D dudvMap;
 layout(binding=3) uniform sampler2D NormalMap;
 layout(binding=4) uniform sampler2D DepthMap;
+layout(binding=5) uniform sampler2D environmentMap;
 
 uniform vec3 viewPos;
 uniform vec3 lightDirection;
@@ -90,6 +91,12 @@ void main() {
     vec4 reflectionColour = texture(reflectionTexture, reflectionTexCoords);
     vec4 refractionColour = texture(refractionTexture, refractionTexCoords);
 
+
+
+
+    vec2 environmentTexCoords = vec2(screenSpace.x, -screenSpace.y);
+    vec4 environmentColor = texture(environmentMap, environmentTexCoords);
+
     // Normals
     vec4 normalMapColour = texture(NormalMap, distortionDUDV);
     vec3 normal = vec3(normalMapColour.r * 2.0 - 1.0, normalMapColour.b, normalMapColour.g * 2.0 - 1.0);
@@ -101,6 +108,8 @@ void main() {
     FragColor = mix(reflectionColour, refractionColour, FresnelValue);
     FragColor = mix(FragColor, vec4(0.0, 0.2, 0.6, 1.0), 0.2) + vec4(normalResult, 0.0) * 0.0;
     FragColor.a = clamp(waterDepth/50.0, 0.0, 1.0); // Remove edge around surface
+
+    //FragColor = environmentColor;
 
     //FragColor = vec4(1.0, 0.0, 0.0, 1.0);
     //FragColor.a = clamp(waterDepth/100.0, 0.0, 1.0); // Remove edge around surface

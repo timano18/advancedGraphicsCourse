@@ -691,6 +691,7 @@ int main(int argc, char* argv[])
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, refractionTextureDepthbuffer, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, refractionTextureDepthbuffer, 0);
 
+
 	// Load DUDVmap
 	unsigned int DUDVtexture;
 	glGenTextures(1, &DUDVtexture);
@@ -717,15 +718,80 @@ int main(int argc, char* argv[])
 	float waterHeight = 0.0f;
 	float waveSpeed = 0.00025f;
 	float waveScale = 7.0f;
+	
+
+
+
+	// Generate and bind the framebuffer
+	unsigned int skyFBO;
+	glGenFramebuffers(1, &skyFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, skyFBO);
+
+	unsigned int skyRBO;
+	glGenRenderbuffers(1, &skyRBO);
+	glBindRenderbuffer(GL_RENDERBUFFER, skyRBO);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, windowWidth, windowHeight);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, skyRBO);
+
+	unsigned int skyTexture;
+	glGenTextures(1, &skyTexture);
+	glBindTexture(GL_TEXTURE_2D, skyTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, skyTexture, 0);
+	
+
+	// Check for framebuffer completeness
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << glGetError() << " Framebuffer incomplete: ";
+		GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		switch (status) {
+		case GL_FRAMEBUFFER_UNDEFINED:
+			std::cout << "GL_FRAMEBUFFER_UNDEFINED" << std::endl;
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+			std::cout << "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT" << std::endl;
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+			std::cout << "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT" << std::endl;
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+			std::cout << "GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER" << std::endl;
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+			std::cout << "GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER" << std::endl;
+			break;
+		case GL_FRAMEBUFFER_UNSUPPORTED:
+			std::cout << "GL_FRAMEBUFFER_UNSUPPORTED" << std::endl;
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+			std::cout << "GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE" << std::endl;
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
+			std::cout << "GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS" << std::endl;
+			break;
+		default:
+			std::cout << "Unknown error" << std::endl;
+			break;
+		}
+	}
+	else {
+		std::cout << "Framebuffer complete" << std::endl;
+	}
 
 	// END
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	glEnable(GL_FRAMEBUFFER_SRGB);
+
 	
 	// Start render-loop
 	while (!stopRendering)
 	{
+
 		//position.x = cameraPosition.x;
 		// Combine the initial rotation with the new position
 		//gridMatrix = initialRotation; // Reset to initial rotation
@@ -774,12 +840,28 @@ int main(int argc, char* argv[])
 		glm::mat4 projMatrix = glm::perspective(glm::radians(45.0f), float(windowWidth) / float(windowHeight), nearPlane, farPlane);
 		glm::mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraDirection, worldUp);
 
+		// ground, reflection (water)
+		glBindFramebuffer(GL_FRAMEBUFFER, skyFBO);
+		glBindTexture(GL_TEXTURE_2D, skyTexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+		glBindRenderbuffer(GL_RENDERBUFFER, skyFBO);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, windowWidth, windowHeight);
+
+
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		//glBindFramebuffer(GL_FRAMEBUFFER, skyFbo);
 		glUseProgram(skyShader);
 		labhelper::setUniformSlow(skyShader, "projection", projMatrix);
 		labhelper::setUniformSlow(skyShader, "view", viewMatrix);
 		labhelper::setUniformSlow(skyShader, "sunAngle", rotateSun(sunangle));
-		labhelper::drawFullScreenQuad();
+		labhelper::setUniformSlow(skyShader, "cameraPosition", cameraPosition);
+		labhelper::setUniformSlow(skyShader, "cameraPosition", cameraDirection);
+		labhelper::setUniformSlow(skyShader, "invViewProjection", glm::inverse(projMatrix * viewMatrix));
 
+		labhelper::drawFullScreenQuad();
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		// Set uniforms for testshader. 
 		glUseProgram(testShader); 
 		labhelper::setUniformSlow(testShader, "viewPos", cameraPosition);
@@ -797,10 +879,6 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(testShader, "waterPlaneDirection", 1.0f); // 1 = cull > height, -1 = cull < height
 		
 		
-
-
-		
-	
 	
 		// Set uniforms for waterShader
 		glUseProgram(waterShader);
@@ -861,7 +939,7 @@ int main(int argc, char* argv[])
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, SnowTexture);
 
-		labhelper::setUniformSlow(testShader, "waterPlaneDirection", -1.0f);
+		
 
 
 		// Change camera for the reflection
@@ -875,8 +953,16 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(testShader, "projection", projMatrix);
 		labhelper::setUniformSlow(testShader, "view", viewMatrix);
 
+
+		// Draw Sky
+		glUseProgram(skyShader);
+		labhelper::setUniformSlow(skyShader, "waterPlaneDirection", -1.0f);
+		labhelper::drawFullScreenQuad();
 		// Draw Grid
+		glUseProgram(testShader);
+		labhelper::setUniformSlow(testShader, "waterPlaneDirection", -1.0f);
 		grid.DrawGrid();
+
 
 		cameraPosition = { cameraPosition.x, cameraPosition.y + cameraDistance, cameraPosition.z };
 		cameraDirection.y = -cameraDirection.y;
@@ -891,21 +977,28 @@ int main(int argc, char* argv[])
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	
+		// Draw sky		
+		glUseProgram(skyShader);
+		labhelper::setUniformSlow(skyShader, "waterPlaneDirection", 1.0f);
+		labhelper::drawFullScreenQuad();
+		// Draw grid
 		glUseProgram(testShader);
-
 		labhelper::setUniformSlow(testShader, "waterPlaneDirection", 1.0f);
 		grid.DrawGrid();
-
 
 
 		// Draw scene regularly
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+		// Draw sky
+		glUseProgram(skyShader);
+		labhelper::setUniformSlow(skyShader, "waterPlaneDirection", 0.0f);
+		labhelper::drawFullScreenQuad();
+		// Draw grid
 		glUseProgram(testShader);
-
 		labhelper::setUniformSlow(testShader, "waterPlaneDirection", 0.0f);
 		grid.DrawGrid();
-
 
 
 		// Render waterPlane
@@ -937,6 +1030,8 @@ int main(int argc, char* argv[])
 		glBindTexture(GL_TEXTURE_2D, Normaltexture);
 		glActiveTexture(GL_TEXTURE4);
 		glBindTexture(GL_TEXTURE_2D, refractionTextureDepthbuffer);
+		glActiveTexture(GL_TEXTURE5);
+		glBindTexture(GL_TEXTURE_2D, skyTexture);
 		
 		
 		//glEnable(GL_BLEND);
