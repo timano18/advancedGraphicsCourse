@@ -333,8 +333,8 @@ void main() {
 	
 
     uint idx = gl_GlobalInvocationID.x;
- 	vertices[idx].positionX += (translation.x * cellsize);
-    vertices[idx].positionY += (translation.y * cellsize);
+ 	vertices[idx].positionX += 4*(translation.x * cellsize);
+    vertices[idx].positionY += 4*(translation.y * cellsize);
 
 	vertices[idx].positionZ = calculateZ(vec2(vertices[idx].positionX, vertices[idx].positionY));
 	//vertices[idx].positionZ += 30;

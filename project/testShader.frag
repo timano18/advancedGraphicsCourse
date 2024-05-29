@@ -42,10 +42,10 @@ vec3 CalcDirLight(vec3 normal, vec3 viewDir)
     // combine results
     vec3 materialColor;
 
-    float snowStart = 225;
-    float grassStop = 200;
-    float grassStart = 75;
-    float sandStop = 50;
+    float snowStart = 400;
+    float grassStop = 250;
+    float grassStart = 0;
+    float sandStop = -100;
 
     // Heights ("ocean" i vertex shader, rakt istället för interpolerat)
     // Snow

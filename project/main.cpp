@@ -107,6 +107,7 @@ glm::vec3 gridSpeed;
 bool followGrid = false;
 bool backFaceCulling = false;
 bool animateSun = false;
+bool demoCamera = false;
 
 
 glm::vec3 oceanPosition(0.0f);
@@ -365,7 +366,7 @@ bool handleEvents(void)
 		{
 			gridSpeed.y = -1.0;
 		}
-		if (state[SDL_SCANCODE_UP])
+		if (state[SDL_SCANCODE_UP] && !demoCamera)
 		{
 			gridSpeed.x = 1.0;
 		}
@@ -374,6 +375,10 @@ bool handleEvents(void)
 			gridSpeed.x = -1.0;
 		}
 		
+	}
+	if (demoCamera)
+	{
+		gridSpeed.x = 1.0;
 	}
 	else
 	{
@@ -426,8 +431,8 @@ void gui()
 	ImGui::SliderFloat("Sun angle", &sunangle, 0.0f, 2.0f);
 	ImGui::Checkbox("Animate sun", &animateSun);
 	ImGui::Text("Light Direction:  x: %.3f  y: %.3f  z: %.3f", lightDirection.x, lightDirection.y, lightDirection.z);
-	ImGui::SliderFloat("simpexScale", &simpexScale, 0.1f, 3000.0f);
-	ImGui::SliderFloat("worleyScale", &worleyScale, 0.1f, 3000.0f);
+	ImGui::SliderFloat("simpexScale", &simpexScale, 0.1f, 60000.0f);
+	ImGui::SliderFloat("worleyScale", &worleyScale, 0.1f, 6000.0f);
 	ImGui::SliderFloat("simpexAmplitude", &simpexAmplitude, 0.1f, 3000.0f);
 	ImGui::SliderFloat("worleyAmplitude", &worleyAmplitude, 0.1f, 3000.0f);
 	ImGui::SliderFloat("ratio", &ratio, 0.0f, 1.0f);
@@ -436,6 +441,7 @@ void gui()
 	ImGui::SliderFloat("Near Plane", &nearPlane, 0.1f, 10000.0f);
 	ImGui::Checkbox("Follow", &followGrid);
 	ImGui::Checkbox("Back face culling", &backFaceCulling);
+	ImGui::Checkbox("Demo camera", &demoCamera);
 
 
 
@@ -823,7 +829,7 @@ int main(int argc, char* argv[])
 		oceanPosition = glm::vec3(vertexFollow.x , vertexFollow.y, oceanPosition.z);
 		waterMatrix = glm::translate(initialRotation, oceanPosition);
 		if (followGrid) {
-			cameraPosition = glm::vec3(vertexFollow.x + 12000.0f, cameraPosition.y, vertexFollow.y + 12000.0f);
+			cameraPosition = glm::vec3(vertexFollow.x + 0.0f, cameraPosition.y, vertexFollow.y + 12000.0f);
 		}
 		if (backFaceCulling)
 		{
@@ -888,7 +894,7 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(testShader, "viewPos", cameraPosition);
 		labhelper::setUniformSlow(testShader, "lightDirection", lightDirection);
 		labhelper::setUniformSlow(testShader, "lightDiffuse", glm::vec3(1.0f));
-		labhelper::setUniformSlow(testShader, "lightAmbient", glm::vec3(0.1f));
+		labhelper::setUniformSlow(testShader, "lightAmbient", glm::vec3(0.01f));
 		labhelper::setUniformSlow(testShader, "lightSpecular", glm::vec3(1.0f));
 		labhelper::setUniformSlow(testShader, "materialShininess", (1.0f));
 		labhelper::setUniformSlow(testShader, "projection", projMatrix);
@@ -914,7 +920,7 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(waterShader, "viewPos", cameraPosition);
 		labhelper::setUniformSlow(waterShader, "lightDirection", lightDirection);
 		labhelper::setUniformSlow(waterShader, "lightDiffuse", glm::vec3(1.0f));
-		labhelper::setUniformSlow(waterShader, "lightAmbient", glm::vec3(0.1f));
+		labhelper::setUniformSlow(waterShader, "lightAmbient", glm::vec3(0.01f));
 		labhelper::setUniformSlow(waterShader, "lightSpecular", glm::vec3(1.0f));
 		labhelper::setUniformSlow(waterShader, "materialShininess", (1.0f));
 
@@ -1037,7 +1043,7 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(waterShader, "viewPos", cameraPosition);
 		labhelper::setUniformSlow(waterShader, "lightDirection", lightDirection);
 		labhelper::setUniformSlow(waterShader, "lightDiffuse", glm::vec3(1.0f));
-		labhelper::setUniformSlow(waterShader, "lightAmbient", glm::vec3(0.1f));
+		labhelper::setUniformSlow(waterShader, "lightAmbient", glm::vec3(0.01f));
 		labhelper::setUniformSlow(waterShader, "lightSpecular", glm::vec3(1.0f));
 		labhelper::setUniformSlow(waterShader, "materialShininess", (1.0f));
 
