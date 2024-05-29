@@ -34,8 +34,8 @@ Grass::Grass(unsigned int width, unsigned int height, int xPos, int yPos, int nu
 
 	m_width = width;
 	m_height = height;
-	m_xPos = xPos; 
-	m_yPos = yPos;
+	m_xPos = yPos;
+	m_yPos = xPos;
 	m_num = num;
 	m_zPos = -zPos;
 
@@ -53,7 +53,7 @@ Grass::Grass(unsigned int width, unsigned int height, int xPos, int yPos, int nu
 void Grass::generateGrassSquare() {
 
 	// generate a list of m_num grass locations (in a grid)
-	glm::vec3 translations[10000]; // val >= m_num
+	glm::vec3 translations[400000]; // val >= m_num
 	glm::vec3 translation;
 
 	int index = 0;
@@ -392,7 +392,181 @@ void Grass::generateGrassTriangle() {
 
 // Draw grass (instancing)
 void Grass::DrawGrass() {
-
 	glBindVertexArray(VAO);
 	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0, m_num);
+}
+
+void Grass::initializeBuffers()
+{
+	bool star = true;
+	
+	if (star)
+	{
+		// Gen vertecies
+		float startX1 = m_xPos - 0.5 * m_width * cos(0 * (PI / 180));
+		float startY1 = m_yPos - 0.5 * m_width * sin(0 * (PI / 180));
+
+		float stopX1 = m_xPos + 0.5 * m_width * cos(0 * (PI / 180));
+		float stopY1 = m_yPos + 0.5 * m_width * sin(0 * (PI / 180));
+
+		float startX2 = m_xPos - 0.5 * m_width * cos(60 * (PI / 180));
+		float startY2 = m_yPos - 0.5 * m_width * sin(60 * (PI / 180));
+
+		float stopX2 = m_xPos + 0.5 * m_width * cos(60 * (PI / 180));
+		float stopY2 = m_yPos + 0.5 * m_width * sin(60 * (PI / 180));
+
+		float startX3 = m_xPos - 0.5 * m_width * cos(-60 * (PI / 180));
+		float startY3 = m_yPos - 0.5 * m_width * sin(-60 * (PI / 180));
+
+		float stopX3 = m_xPos + 0.5 * m_width * cos(-60 * (PI / 180));
+		float stopY3 = m_yPos + 0.5 * m_width * sin(-60 * (PI / 180));
+
+		float bot = m_zPos;
+		float top = bot + m_height;
+
+		// PLANE
+		float grass[] = {
+			// 1
+			startX1, startY1, bot,				0.0f, 1.0f, // BL 0
+			stopX1, stopY1, bot,				1.0f, 1.0f, // BR 1
+			startX1, startY1, top,				0.0f, 0.0f, // TL 2
+
+			stopX1, startY1, bot,				1.0f, 1.0f, // BR 1
+			stopX1, stopY1, top,				1.0f, 0.0f, // TR 3
+			startX1, stopY1, top,				0.0f, 0.0f, // TL 2
+			// 2
+			startX2, startY2, bot,				0.0f, 1.0f, // BL 0
+			stopX2, stopY2, bot,				1.0f, 1.0f, // BR 1
+			startX2, startY2, top,				0.0f, 0.0f, // TL 2
+
+			stopX2, stopY2, bot,				1.0f, 1.0f, // BR 1
+			stopX2, stopY2, top,				1.0f, 0.0f, // TR 3
+			startX2, startY2, top,				0.0f, 0.0f, // TL 2
+			// 3
+			startX3, stopY2, bot,				0.0f, 1.0f, // BL 0
+			stopX3, startY2, bot,				1.0f, 1.0f, // BR 1
+			startX3, stopY2, top,				0.0f, 0.0f, // TL 2
+
+			stopX3, stopY3, bot,				1.0f, 1.0f, // BR 1
+			stopX3, stopY3, top,				1.0f, 0.0f, // TR 3
+			startX3, startY3, top,				0.0f, 0.0f, // TL 2
+		};
+
+		// 1
+		indices.push_back(0);
+		indices.push_back(1);
+		indices.push_back(2);
+
+		indices.push_back(3);
+		indices.push_back(4);
+		indices.push_back(5);
+
+		// 2
+		indices.push_back(6);
+		indices.push_back(7);
+
+		indices.push_back(8);
+
+		indices.push_back(9);
+		indices.push_back(10);
+		indices.push_back(11);
+
+		// 3
+		indices.push_back(12);
+		indices.push_back(13);
+		indices.push_back(14);
+
+		indices.push_back(15);
+		indices.push_back(16);
+		indices.push_back(17);
+
+		// Generate and bind VAO, VBO, EBO
+		glGenVertexArrays(1, &VAO);
+		glGenBuffers(1, &VBO);
+		glGenBuffers(1, &EBO);
+
+		glBindVertexArray(VAO);
+
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(grass), grass, GL_STATIC_DRAW);
+
+		// Vertex positions
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+
+		// Texture coordinates
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+		// Element buffer object
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+		glBindVertexArray(0); // Unbind VAO to prevent accidental modification
+	}
+	else {
+		float startX = m_xPos - 0.5 * m_width;
+		float startY = m_yPos - 0.5 * m_width;
+
+		float stopX = m_xPos + 0.5 * m_width;
+		float stopY = m_yPos + 0.5 * m_width;
+
+		float bot = m_zPos;
+		float top = bot + m_height;
+
+		// Define the grass square vertices (positions + texCoords)
+		float grassSquare[] = {
+			startX, startY, bot, 0.0f, 1.0f, // BL 0
+			stopX, startY, bot, 1.0f, 1.0f, // BR 1
+			startX, startY, top, 0.0f, 0.0f, // TL 2
+			stopX, startY, bot, 1.0f, 1.0f, // BR 1
+			stopX, startY, top, 1.0f, 0.0f, // TR 3
+			startX, startY, top, 0.0f, 0.0f  // TL 2
+		};
+
+		indices = { 0, 1, 2, 3, 4, 5 };
+
+		// Generate and bind VAO, VBO, EBO
+		glGenVertexArrays(1, &VAO);
+		glGenBuffers(1, &VBO);
+		glGenBuffers(1, &EBO);
+
+		glBindVertexArray(VAO);
+
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(grassSquare), grassSquare, GL_STATIC_DRAW);
+
+		// Vertex positions
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+
+		// Texture coordinates
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+		// Element buffer object
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+		glBindVertexArray(0); // Unbind VAO to prevent accidental modification
+	}
+	
+
+	
+}
+
+void Grass::renderGrassOnTerrain(GLuint posBuffer, GLuint grassCount)
+{
+	glBindVertexArray(VAO);
+
+	// Bind the grass position buffer and set it as an instanced attribute
+	glBindBuffer(GL_ARRAY_BUFFER, posBuffer);
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glVertexAttribDivisor(2, 1); // Attribute is per-instance
+
+	// Render the grass instances
+	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0, grassCount);
+
+	glBindVertexArray(0);
 }

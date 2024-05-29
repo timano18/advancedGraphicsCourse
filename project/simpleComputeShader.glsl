@@ -366,8 +366,9 @@ void main() {
 	
 
 	  // Determine where to place grass
-    float heightThreshold = 1.0; // Example threshold for placing grass
-    if (vertices[idx].positionZ > heightThreshold) {
+    float heightThreshold = -150.0; // Example threshold for placing grass
+
+    if (vertices[idx].positionZ < heightThreshold) {
         uint grassIndex = atomicAdd(grassCount, 1);
         positions[grassIndex] = vec3(vertices[idx].positionX, vertices[idx].positionY, vertices[idx].positionZ);
     }
