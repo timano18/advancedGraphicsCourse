@@ -31,7 +31,7 @@ void main() {
         FragPos = vec3(model * vec4(aPos.x + aOffset.x + totalWindOffsetX, aPos.y  + aOffset.y + totalWindOffsetY, aPos.z - aOffset.z, 1.0));
     }
     else {                      // "if bot vertex" (from texCoord)
-        FragPos = vec3(model * vec4(aPos.x + aOffset.x, aPos.y  + aOffset.y, aPos.z + 0.0, 1.0));
+        FragPos = vec3(model * vec4(aPos.x + aOffset.x, aPos.y + aOffset.y, aPos.z, 1.0));
     }
     
     //Normal = mat3(transpose(inverse(model))) * aNormal; // inga normaler in just nu

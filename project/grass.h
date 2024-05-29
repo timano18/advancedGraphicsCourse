@@ -24,5 +24,11 @@ private:
 	int m_yPos;
 	int m_num;
 	int m_zPos;
+	
+	float m_offsetXY;
+	float m_offsetZ;
+	float m_perlinOffset;
+	float m_seed;
+
 	GLuint VAO, VBO, EBO, instanceVBO;
 };
