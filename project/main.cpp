@@ -675,14 +675,14 @@ int main(int argc, char* argv[])
 	// START GRASS
 
 
-	Grass grass1(1000, 1000, 0, 0, 0);
-	grass1.generateGrassSquare();
+	//Grass grass1(1000, 1000, 0, 0, 0);
+	//grass1.generateGrassSquare();
 
-	Grass grass2(1000, 1000, 10000, 0, 0);
+	Grass grass2(100, 100, 0, 0, 0);
 	grass2.generateGrassStar();
 
-	Grass grass3(1000, 1000, 10000, 10000, 0);
-	grass3.generateGrassTriangle();
+	//Grass grass3(1000, 1000, 10000, 10000, 0);
+	//grass3.generateGrassTriangle();
 
 
 	// STOP GRASS
@@ -789,9 +789,9 @@ int main(int argc, char* argv[])
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GrassPicture);
 
-		grass1.DrawGrass();
+		//grass1.DrawGrass();
 		grass2.DrawGrass();
-		grass3.DrawGrass();
+		//grass3.DrawGrass();
 		// GRASS STOP
 
 		// Render overlay GUI.

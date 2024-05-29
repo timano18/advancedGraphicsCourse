@@ -4,7 +4,8 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
-#include "Grass.h" 
+#include "Grass.h"
+#include "Noise.h" 
 
 #include <iostream>
 
@@ -36,6 +37,8 @@ Grass::Grass(unsigned int width, unsigned int height, int xPos, int yPos, int zP
 void Grass::generateGrassSquare()
 {
 	// generate a list of 100 grass locations (in a grid)
+	glm::vec2 translations[10000];
+	glm::vec2 translation;
 	int index = 0;
 	float offset = 500.0f;
 	for (int y = -10; y < 10; y += 2) {
@@ -107,26 +110,29 @@ void Grass::generateGrassSquare()
 
 void Grass::generateGrassStar()
 {	
-
 	// generate a list of 100 grass locations (in a grid)
+	glm::vec2 translations[10000];
+	glm::vec2 translation;
+	float offset = 50.0f;
+	float perlinOffset = 3.0f;
+	float seed = 0.333;
+
 	int index = 0;
-	float offset = 500.0f;
-	for (int y = -10; y < 10; y += 2) {
-		for (int x = -10; x < 10; x += 2) {
-			translation.x = (float)x * offset;
-			translation.y = (float)y * offset;
+	for (int y = 0; y < 200; y += 2) {
+		for (int x = 0; x < 200; x += 2) {
+			translation.x = ((float)x + perlinNoiseGen((float)x + seed, (float)y + seed) * perlinOffset) * offset;
+			translation.y = ((float)y + perlinNoiseGen((float)x + seed, (float)y + seed) * perlinOffset) * offset;
 			translations[index++] = translation;
 		}
 	}
+
 	// store instance data in an array buffer
 	glGenBuffers(1, &instanceVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 100, &translations[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 10000, &translations[0], GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-
 	// **************
-
 
 	float startX1 = m_xPos - 0.5 * m_width * cos(0 * (PI/180));
 	float startY1 = m_yPos - 0.5 * m_width * sin(0 * (PI / 180));
@@ -232,6 +238,8 @@ void Grass::generateGrassStar()
 void Grass::generateGrassTriangle()
 {
 	// generate a list of 100 grass locations (in a grid)
+	glm::vec2 translations[10000];
+	glm::vec2 translation;
 	int index = 0;
 	float offset = 500.0f;
 	for (int y = -10; y < 10; y += 2) {
@@ -241,17 +249,14 @@ void Grass::generateGrassTriangle()
 			translations[index++] = translation;
 		}
 	}
+
 	// store instance data in an array buffer
 	glGenBuffers(1, &instanceVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 100, &translations[0], GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-
 	// **************
-
-
-
 
 	float startX1 = (m_xPos - 0.5 * m_width * cos(0 * (PI / 180)));
 	float startY1 = (m_yPos - 0.5 * m_width * sin(0 * (PI / 180))) - 0.2 * m_width;
@@ -360,5 +365,5 @@ void Grass::DrawGrass()
 	glBindVertexArray(VAO);
 	//glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 	//glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 100); // 100 triangles of 6 vertices each
-	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0, 100);
+	glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0, 10000);
 }
