@@ -55,7 +55,7 @@ void Tree::generateTree(int treeType) {
 		m_branchLength = 10;
 		m_thickness = 1.0;
 		m_treeList = { 'B' };
-		m_branchCorrection = 3;
+		m_branchCorrection = 0;
 	}
 
 	// // Parameters: TreeType 2
@@ -75,7 +75,7 @@ void Tree::generateTree(int treeType) {
 		m_branchLength = 1;
 		m_thickness = 0.1;
 		m_treeList = { 'B' };
-		m_branchCorrection = 5;
+		m_branchCorrection = 0;
 	}
 
 	// // Parameters: TreeType 4
