@@ -938,6 +938,8 @@ int main(int argc, char* argv[])
 		glBindTexture(GL_TEXTURE_2D, SandTexture);
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, SnowTexture);
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, skyTexture);
 
 		
 

@@ -11,6 +11,7 @@ out vec2 TexCoords;
 out vec3 vertColour;
 out vec4 vertexPosition; 
 out float visibility;
+out vec4 clipSpace;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -43,4 +44,6 @@ void main()
     visibility = clamp(visibility,0.0,1.0);
 
     gl_Position = projection * view * vec4(FragPos, 1.0);
+    clipSpace = gl_Position;
+
 }

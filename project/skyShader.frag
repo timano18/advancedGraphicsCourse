@@ -192,6 +192,7 @@ float kInfinity = 1e20;
     
     fragColor = vec4(color, 1.0);
     */
+
     vec2 uv = (texCoord - 0.5) * 2.0;
     vec4 clipSpace = vec4(uv, 1.0, 1.0);
     vec4 viewSpace = invViewProjection * clipSpace;
@@ -203,10 +204,13 @@ float kInfinity = 1e20;
     vec3 color = computeIncidentLight(cameraPosition, worldDir, 0.0, atmosphereRadius);
    
 
-     if (worldDir.y < 0.0) {
+     if (worldDir.y < 0.00000001) {
+
+
         // Sample color just above the horizon
         vec3 horizonDir = normalize(vec3(worldDir.x, 0.01, worldDir.z));
         color = computeIncidentLight(cameraPosition, horizonDir, 0.0, atmosphereRadius);
+
     }
     color = pow(color * 0.38317, vec3(1.0 / 2.2)); // Apply tone mapping
     fragColor = vec4(color, 1.0);

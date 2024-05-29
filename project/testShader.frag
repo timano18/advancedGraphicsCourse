@@ -10,6 +10,7 @@ in vec3 Normal;     // Normal vector of the fragment
 in vec2 TexCoords;  // Texture coordinates
 in vec4 vertexPosition;
 in float visibility;
+in vec4 clipSpace;
 
 uniform vec3 viewPos;
 
@@ -22,6 +23,7 @@ layout(binding=0) uniform sampler2D grassTexture;
 layout(binding=1) uniform sampler2D stoneTexture;
 layout(binding=2) uniform sampler2D sandTexture;
 layout(binding=3) uniform sampler2D snowTexture;
+layout(binding=4) uniform sampler2D skyTexture;
 
 uniform float materialShininess;
 
@@ -90,12 +92,14 @@ vec3 CalcDirLight(vec3 normal, vec3 viewDir)
 
 void main()
 {    
+    vec2 normalizedDeviceSpace = (clipSpace.xy/clipSpace.w);
+    vec2 screenSpace = normalizedDeviceSpace/2 + 0.5;
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(viewPos - FragPos);
     vec3 result = CalcDirLight(norm, viewDir);
 
 
-    vec3 fogColor = vec3(0.0, 0.0, 1.0);
+    vec3 fogColor = texture(skyTexture, screenSpace).xyz;
     FragColor = mix(vec4(fogColor, 1.0), vec4(result, 1.0), visibility);
     //FragColor = vec4(vec3(result), 1.0f); // combining the two lighting components
 }
