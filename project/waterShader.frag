@@ -9,6 +9,7 @@ in vec3 FragPos;
 in vec2 TexCoords; 
 in vec4 clipSpace;
 in vec3 FresnelCamera;
+in float visibility;
 
 uniform float waveScale;
 
@@ -17,7 +18,7 @@ layout(binding=1) uniform sampler2D refractionTexture;
 layout(binding=2) uniform sampler2D dudvMap;
 layout(binding=3) uniform sampler2D NormalMap;
 layout(binding=4) uniform sampler2D DepthMap;
-layout(binding=5) uniform sampler2D environmentMap;
+layout(binding=5) uniform sampler2D skyTexture;
 
 uniform vec3 viewPos;
 uniform vec3 lightDirection;
@@ -94,9 +95,13 @@ void main() {
 
 
 
-    vec2 environmentTexCoords = vec2(screenSpace.x, -screenSpace.y);
-    vec4 environmentColor = texture(environmentMap, environmentTexCoords);
+     // Sample sky texture
+    vec4 skyColor = texture(skyTexture, vec2(screenSpace.x, -screenSpace.y));
 
+     // Check sky color intensity to avoid blending with black
+    float skyIntensity = length(skyColor.rgb);
+    vec4 blendedSkyColor = mix(vec4(0.0), skyColor, step(0.5, skyIntensity));
+   
     // Normals
     vec4 normalMapColour = texture(NormalMap, distortionDUDV);
     vec3 normal = vec3(normalMapColour.r * 2.0 - 1.0, normalMapColour.b, normalMapColour.g * 2.0 - 1.0);
@@ -104,18 +109,18 @@ void main() {
     vec3 viewDir = normalize(viewPos - FragPos);
     vec3 normalResult = CalcDirLight(norm, viewDir);
 
+        // Blend the sky color with reflection and refraction colors
+    vec4 waterColor = mix(reflectionColour, refractionColour, FresnelValue);
+   // waterColor = mix(waterColor, skyColor, 0.3); // Adjust blend factor as needed
+
+
+      // Print out
+    FragColor = mix(waterColor, vec4(0.0, 0.2, 0.6, 1.0), 0.2) + vec4(normalResult, 0.0) * 0.0;
+    FragColor.a = clamp(waterDepth / 100.0, 0.0, 1.0); // Remove edge around surface
+    /*
     // Print out
     FragColor = mix(reflectionColour, refractionColour, FresnelValue);
     FragColor = mix(FragColor, vec4(0.0, 0.2, 0.6, 1.0), 0.2) + vec4(normalResult, 0.0) * 0.0;
-    FragColor.a = clamp(waterDepth/50.0, 0.0, 1.0); // Remove edge around surface
-
-    //FragColor = environmentColor;
-
-    //FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-    //FragColor.a = clamp(waterDepth/100.0, 0.0, 1.0); // Remove edge around surface
-    //FragColor = vec4(waterDepth/100.0);
-
-    //FragColor = mix(reflectionColour, refractionColour, FresnelValue);
-    //FragColor = mix(FragColor, refractionColour, clamp(waterDepth/100.0, 0.0, 1.0));
-    //FragColor = mix(FragColor, vec4(0.0, 0.2, 0.6, 1.0), 0.2) + vec4(normalResult, 0.0) * 0.0;
+    FragColor.a = clamp(waterDepth/100.0, 0.0, 1.0); // Remove edge around surface
+    */
 }

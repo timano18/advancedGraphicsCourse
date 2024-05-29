@@ -97,9 +97,14 @@ void main()
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(viewPos - FragPos);
     vec3 result = CalcDirLight(norm, viewDir);
-
-
+    
+    vec4 skyColor = texture(skyTexture, vec2(screenSpace.x, -screenSpace.y));
+    vec4 terrainColor = mix(vec4(result,1.0), skyColor,1.0- visibility);
+  
+    
+    
     vec3 fogColor = texture(skyTexture, screenSpace).xyz;
     FragColor = mix(vec4(fogColor, 1.0), vec4(result, 1.0), visibility);
+    //FragColor = terrainColor;
     //FragColor = vec4(vec3(result), 1.0f); // combining the two lighting components
 }

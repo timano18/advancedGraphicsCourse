@@ -78,7 +78,7 @@ float farPlane = 200000.0f;
 float nearPlane = 100.0f;
 
 // Camera speed
-float cameraSpeedBase = 100.f;
+float cameraSpeedBase = 500.f;
 float cameraSpeed = cameraSpeedBase;
 float shiftSpeed = 10.0;
 
@@ -859,7 +859,7 @@ int main(int argc, char* argv[])
 
 		if (animateSun)
 		{
-			sunangle = (3 * glm::abs(currentTime / 200.0f - glm::floor(currentTime / 200.0f + 0.5f))) +0.25;
+			sunangle = (3 * glm::abs(currentTime / 50.0f - glm::floor(currentTime / 50.0f + 0.5f))) +0.25;
 		}
 
 		
@@ -894,7 +894,7 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(testShader, "viewPos", cameraPosition);
 		labhelper::setUniformSlow(testShader, "lightDirection", lightDirection);
 		labhelper::setUniformSlow(testShader, "lightDiffuse", glm::vec3(1.0f));
-		labhelper::setUniformSlow(testShader, "lightAmbient", glm::vec3(0.01f));
+		labhelper::setUniformSlow(testShader, "lightAmbient", glm::vec3(0.1f));
 		labhelper::setUniformSlow(testShader, "lightSpecular", glm::vec3(1.0f));
 		labhelper::setUniformSlow(testShader, "materialShininess", (1.0f));
 		labhelper::setUniformSlow(testShader, "projection", projMatrix);
@@ -920,7 +920,7 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(waterShader, "viewPos", cameraPosition);
 		labhelper::setUniformSlow(waterShader, "lightDirection", lightDirection);
 		labhelper::setUniformSlow(waterShader, "lightDiffuse", glm::vec3(1.0f));
-		labhelper::setUniformSlow(waterShader, "lightAmbient", glm::vec3(0.01f));
+		labhelper::setUniformSlow(waterShader, "lightAmbient", glm::vec3(0.1f));
 		labhelper::setUniformSlow(waterShader, "lightSpecular", glm::vec3(1.0f));
 		labhelper::setUniformSlow(waterShader, "materialShininess", (1.0f));
 
@@ -1043,7 +1043,7 @@ int main(int argc, char* argv[])
 		labhelper::setUniformSlow(waterShader, "viewPos", cameraPosition);
 		labhelper::setUniformSlow(waterShader, "lightDirection", lightDirection);
 		labhelper::setUniformSlow(waterShader, "lightDiffuse", glm::vec3(1.0f));
-		labhelper::setUniformSlow(waterShader, "lightAmbient", glm::vec3(0.01f));
+		labhelper::setUniformSlow(waterShader, "lightAmbient", glm::vec3(0.1f));
 		labhelper::setUniformSlow(waterShader, "lightSpecular", glm::vec3(1.0f));
 		labhelper::setUniformSlow(waterShader, "materialShininess", (1.0f));
 
@@ -1063,10 +1063,10 @@ int main(int argc, char* argv[])
 		glBindTexture(GL_TEXTURE_2D, skyTexture);
 		
 		
-		//glEnable(GL_BLEND);
-		//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
-		//glDisable(GL_BLEND);
+		glDisable(GL_BLEND);
 		
 		glBindVertexArray(0);
 	

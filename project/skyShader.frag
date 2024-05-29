@@ -214,7 +214,7 @@ float kInfinity = 1e20;
         // Sample color just above the horizon
         vec3 horizonDir = normalize(vec3(worldDir.x, 0.01, worldDir.z));
         color = computeIncidentLight(cameraPosition, horizonDir, 0.0, atmosphereRadius);
-
+        //color = vec3(0.0);
     }
     color = pow(color * 0.38317, vec3(1.0 / 2.2)); // Apply tone mapping
     fragColor = vec4(color, 1.0);
