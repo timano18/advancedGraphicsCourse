@@ -47,40 +47,56 @@ vec3 CalcDirLight(vec3 normal, vec3 viewDir)
     float grassStart = 0;
     float sandStop = -100;
 
+    float normalSlopeVal = 0.20f;
+    float normalSlopeStrenght = 5.0f;
+
     // Heights ("ocean" i vertex shader, rakt istället för interpolerat)
     // Snow
     if (FragPos.y > snowStart) {
         materialColor = texture(snowTexture, TexCoords).rgb;
-        if (abs(Normal.x) > 0.40) materialColor = mix(materialColor, texture(stoneTexture, TexCoords).rgb, 0.5);
+        if (abs(normal.x) > normalSlopeVal || abs(normal.z) > normalSlopeVal) {
+            float val = max(abs(normal.x)*normalSlopeStrenght, abs(normal.z)*normalSlopeStrenght) - normalSlopeVal*normalSlopeStrenght;
+            val = clamp (val, 0.0, 1.0);
+            materialColor = mix(materialColor, texture(stoneTexture, TexCoords).rgb, val);
+        }
     } else
     // Interpolate grass to snow
     if (FragPos.y > grassStop) {
         materialColor = mix(texture(grassTexture, TexCoords).rgb, texture(snowTexture, TexCoords).rgb, (FragPos.y-grassStop)/(snowStart-grassStop));
-        if (abs(Normal.x) > 0.40) materialColor = mix(materialColor, texture(stoneTexture, TexCoords).rgb, 0.5);
+        if (abs(normal.x) > normalSlopeVal || abs(normal.z) > normalSlopeVal) {
+            float val = max(abs(normal.x)*normalSlopeStrenght, abs(normal.z)*normalSlopeStrenght) - normalSlopeVal*normalSlopeStrenght;
+            val = clamp (val, 0.0, 1.0);
+            materialColor = mix(materialColor, texture(stoneTexture, TexCoords).rgb, val);
+
+        }
     } else 
     // Grass
     if (FragPos.y > grassStart) {
         materialColor = texture(grassTexture, TexCoords).rgb;
-        if (abs(Normal.x) > 0.40) materialColor = mix(materialColor, texture(stoneTexture, TexCoords).rgb, 0.5);
+        if (abs(normal.x) > normalSlopeVal || abs(normal.z) > normalSlopeVal) {
+            float val = max(abs(normal.x)*normalSlopeStrenght, abs(normal.z)*normalSlopeStrenght) - normalSlopeVal*normalSlopeStrenght;
+            val = clamp (val, 0.0, 1.0);
+            materialColor = mix(materialColor, texture(stoneTexture, TexCoords).rgb, val);
+        }
     } else
     // Interpolate sand to grass
     if (FragPos.y > sandStop) {
         materialColor = mix(texture(sandTexture, TexCoords).rgb, texture(grassTexture, TexCoords).rgb, (FragPos.y-sandStop)/(grassStart-sandStop));
-        if (abs(Normal.x) > 0.40) materialColor = mix(materialColor, texture(stoneTexture, TexCoords).rgb, 0.5);
+        if (abs(normal.x) > normalSlopeVal || abs(normal.z) > normalSlopeVal) {
+            float val = max(abs(normal.x)*normalSlopeStrenght, abs(normal.z)*normalSlopeStrenght) - normalSlopeVal*normalSlopeStrenght;
+            val = clamp (val, 0.0, 1.0);
+            materialColor = mix(materialColor, texture(stoneTexture, TexCoords).rgb, val);
+        }
     } else 
     // Sand
     if (FragPos.y <= sandStop) {
         materialColor = texture(sandTexture, TexCoords).rgb;
-        if (abs(Normal.x) > 0.40) materialColor = mix(materialColor, texture(stoneTexture, TexCoords).rgb, 0.5);
+        if (abs(normal.x) > normalSlopeVal || abs(normal.z) > normalSlopeVal) {
+            float val = max(abs(normal.x)*normalSlopeStrenght, abs(normal.z)*normalSlopeStrenght) - normalSlopeVal*normalSlopeStrenght;
+            val = clamp (val, 0.0, 1.0);
+            materialColor = mix(materialColor, texture(stoneTexture, TexCoords).rgb, val);
+        }
     }
-    // Slope
-    //if (abs(Normal.x) > 0.25) {
-    //    materialColor = texture(stoneTexture, TexCoords).rgb/0.8;
-    //}
-    //if (abs(Normal.x) > 0.40) {
-    //    materialColor = texture(stoneTexture, TexCoords).rgb;
-    //}
-    
 
     vec3 ambient = lightAmbient * materialColor;
     vec3 diffuse = lightDiffuse * diff * materialColor;
