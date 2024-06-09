@@ -610,6 +610,11 @@ int main(int argc, char* argv[])
 	auto start = std::chrono::high_resolution_clock::now();		
 	Grid grid;
 	grid.generateGrid();
+
+	//Grid grassGrid(240, 240, -10, -10, 100, 750, 100);
+	Grid grassGrid;
+	grassGrid.generateGrid();
+
 	auto stop = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::duration<float>>(stop - start);
 	std::cout << "Initial grid(s); generation time: " << duration.count() << std::endl;
@@ -1141,7 +1146,7 @@ int main(int argc, char* argv[])
 		
 		// SSBO for computeshader
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, grid.getVBO());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, grassBuffer);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, grassGrid.getVBO());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, counterBuffer);
 
 		glDispatchCompute(57600, 1, 1);
@@ -1149,7 +1154,7 @@ int main(int argc, char* argv[])
 		GLuint grassCount = 5760000;
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, counterBuffer);
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(GLuint), &grassCount);
-		std::cout << grassCount << std::endl;
+		//std::cout << grassCount << std::endl;
 
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
@@ -1180,7 +1185,7 @@ int main(int argc, char* argv[])
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GrassPicture);
 
-		//grass1.renderGrassOnTerrain(grid.getVBO(), grassCount);
+		grass1.renderGrassOnTerrain(grassGrid.getVBO(), grassCount);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, grassBuffer);
 		//grass1.renderGrassOnTerrain(grid.getVBO(), grassCount);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, counterBuffer);

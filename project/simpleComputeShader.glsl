@@ -40,7 +40,7 @@ layout(std430, binding = 1) buffer VertexFollowBuffer {
 };
 
 layout (std430, binding = 2) buffer GrassPositions {
-    vec3 positions[]; // (x, y, z, w) where w could be used for additional data if needed
+    Vertex vertices2[]; // (x, y, z, w) where w could be used for additional data if needed
 };
 
 layout(std430, binding = 3) buffer CounterBuffer {
@@ -365,12 +365,19 @@ void main() {
 	vec3 normalized = normalize(vec3(vertices[idx].normalX,vertices[idx].normalY,vertices[idx].normalZ));
 	
 
-	  // Determine where to place grass
-    float heightThreshold = -150.0; // Example threshold for placing grass
+	vertices2[idx] = vertices[idx];
+	if(!(mod(idx, 2)==0)) 
+	{
+		vertices2[idx].positionZ = 10000000;
+	}
+	if(vertices[idx].positionZ > 0)
+	{
+		vertices2[idx].positionZ = 10000000;
+	}
+	if(normalized.x > 0.01 || normalized.z > 0.95)
+	{
+		vertices2[idx].positionZ = 10000000;
+	}
 
-    if (vertices[idx].positionZ < heightThreshold) {
-        uint grassIndex = atomicAdd(grassCount, 1);
-        positions[grassIndex] = vec3(vertices[idx].positionX, vertices[idx].positionY, vertices[idx].positionZ);
-    }
 
 }
