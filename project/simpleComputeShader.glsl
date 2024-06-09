@@ -364,17 +364,25 @@ void main() {
 	
 	vec3 normalized = normalize(vec3(vertices[idx].normalX,vertices[idx].normalY,vertices[idx].normalZ));
 	
-
 	vertices2[idx] = vertices[idx];
-	if(!(mod(idx, 2)==0)) 
+
+	if(vertices[idx].positionZ > 100-10 || vertices[idx].positionZ < -300+10)
 	{
 		vertices2[idx].positionZ = 10000000;
 	}
-	if(vertices[idx].positionZ > 0)
+
+	if(vertices[idx].positionZ > 100-10+50) 
 	{
-		vertices2[idx].positionZ = 10000000;
+		vertices2[idx].positionZ = vertices2[idx].positionZ-10;
 	}
-	if(normalized.x > 0.01 || normalized.z > 0.95)
+
+	//if(vertices[idx].positionZ < -300+10 && !(mod(idx, 2)==0)) 
+	//{
+	//	vertices2[idx].positionZ = 10000000;
+	//}
+
+
+	if(abs(normalized.x) > 0.20f || abs(normalized.y) > 0.20f) 
 	{
 		vertices2[idx].positionZ = 10000000;
 	}

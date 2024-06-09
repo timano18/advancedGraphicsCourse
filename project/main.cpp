@@ -841,7 +841,7 @@ int main(int argc, char* argv[])
 	// END
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	Grass grass1(100, 100, 0, 0, 100*100, 0);
+	Grass grass1(15, 20, 0, 0, 100*100, -100+10);
 	grass1.initializeBuffers();
 	//grass1.generateGrassSquare();
 

@@ -17,8 +17,8 @@ uniform mat4 projection;
 
 uniform float time;
 
-float windAmpX = 25.0f;
-float windAmpY = 16.5f;
+float windAmpX = 2.5f*3;
+float windAmpY = 1.65f*3;
 float windFreqX = 6.0f;
 float windFreqY = 2.5f;
 
